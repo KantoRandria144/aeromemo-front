@@ -1,0 +1,235 @@
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* title in the header toolbar  */
+.fc .fc-toolbar-title {
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.fc .fc-list-day-cushion {
+  background-color: #3ea16b; /* Couleur de fond personnalisée */
+  color: #333; /* Couleur du texte */
+  font-weight: bold;
+  padding: 10px;
+}
+
+.fc-daygrid-day-frame,
+.fc-daygrid-event-harness {
+  overflow: visible !important;
+  z-index: 10;
+  position: relative;
+}
+
+
+.notyf {
+  z-index: 999999 !important;
+}
+
+.tooltip {
+  z-index: 999999 !important;
+}
+
+.card {
+  z-index: 50 !important;
+}
+
+/* ✅ Style du scrollbar pour Chrome, Edge et Safari */
+::-webkit-scrollbar {
+  width: 8px; /* Largeur de la scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: transparent; /* Fond transparent */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c4c4c4; /* Couleur de la poignée */
+  border-radius: 10px; /* Bords arrondis */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0; /* Couleur au survol */
+}
+
+/* ✅ Pour Firefox */
+* {
+  scrollbar-width: thin; /* Scroll fin */
+  scrollbar-color: #c4c4c4 transparent; /* Couleurs */
+}
+
+.gantt_grid_data .gantt_row {
+  background: #fcf8f8;
+}
+
+.gantt_task_row.gantt_selected {
+  background: rgba(59, 130, 246, 0.2) !important; /* Bleu clair */
+}
+.gantt_task {
+  font-family: "Arial", sans-serif;
+  font-weight: 500;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.gantt_container {
+  /* border-radius: 10px; */
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+}
+
+.gantt_task_line {
+  border-radius: 8px;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+
+
+.gantt_task_line {
+  transition: transform 0.2s ease-in-out;
+}
+
+.gantt_task_progress {
+  transition: background-color 0.3s ease;
+}
+
+.gantt_task_line:hover {
+  transform: translateX(5px); /* Effet léger au survol */
+}
+
+/* Mode sombre pour Gantt */
+.dark-mode .gantt-task-content {
+  background-color: #333;
+  color: #fff;
+}
+
+.gantt-dark .gantt-task-content {
+  background-color: #444;
+  color: #fff;
+}
+
+.gantt_task_progress {
+  background: linear-gradient(135deg, #34c759, #28a745);
+}
+
+.gantt_task_progress:hover {
+  background: linear-gradient(135deg, #28a745, #34c759);
+}
+.task-late {
+  background-color: #d32f2f !important;
+}
+
+.task-late > .gantt_task_progress_wrapper > .gantt_task_progress {
+  background: linear-gradient(135deg, #d32f2f, #d32f2f) !important;
+ /* Applique un dégradé rouge */
+}
+
+
+.table-striped tr:nth-child(even) {
+  background-color: #f4f4f4; /* Gris clair */
+}
+
+.table-striped tr:nth-child(odd) {
+  background-color: #ffffff; /* Blanc */
+}
+
+/* Pour le mode sombre */
+.dark .table-striped tr:nth-child(even) {
+  background-color: #2d2d2d;
+}
+
+.dark .table-striped tr:nth-child(odd) {
+  background-color: #1a1a1a;
+}
+.table-striped tr:hover {
+  background-color: #d1e3c9; /* Légèrement teinté en vert */
+  transition: background 0.3s ease-in-out;
+}
+.status-todo {
+  background-color: #C6DC96; /* Vert clair */
+  color: white;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-weight: bold;
+  border: 1px solid #9DBF67; /* Bordure légèrement plus foncée */
+}
+
+.status-urgent {
+  background-color: #E30613; /* Rouge */
+  color: white;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-weight: bold;
+  border: 1px solid #B8000A;
+}
+
+.status-todo:hover, .status-urgent:hover {
+  opacity: 0.8;
+  transition: all 0.3s ease-in-out;
+}
+
+.quill-content {
+  line-height: 1.6;
+}
+
+.quill-content p {
+  margin-bottom: 1rem;
+}
+
+.quill-content a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.quill-content a:hover {
+  color: #2563eb;
+}
+
+.quill-content ul, 
+.quill-content ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.quill-content li {
+  margin-bottom: 0.5rem;
+}
+
+/* Style pour le mode sombre */
+.dark .quill-content a {
+  color: #60a5fa;
+}
+
+/* .dark .quill-content img {
+  width: 500px;
+} */
+
+ .quill-content a:hover {
+  color: #3b82f6;
+}
+.dark .quill-content img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1rem 0;
+  }
+  
+  .dark .quill-content {
+    width: 100%;
+    line-height: 1.6;
+    font-size: 1rem;
+  }
+  
+  .dark .quill-content p {
+    margin-bottom: 1rem;
+    white-space: normal;
+    word-wrap: break-word;
+  }
+
