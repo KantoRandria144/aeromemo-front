@@ -5,22 +5,22 @@ import fond from "../../../src/assets/DJI_0028.jpg";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthService } from "../../services/User/AuthServices";
 
-const Login = () => {
-const [email, setEmail] = useState("");
+const Register = () => {
+const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const user = await AuthService.login({ email, password });
-      alert(`Bienvenue ${user.name}`);
-      navigate("/aeromemo/home"); // Redirection vers la page d'accueil
+      await AuthService.register({ name, email, password });
+      alert("Inscription réussie ! Connectez-vous.");
+      navigate("/aeromemo/login"); // Redirection vers login
     } catch (err) {
-      alert("Échec de la connexion");
+      alert("Échec de l'inscription");
     }
   };
-
   return (
     <div className="flex justify-center items-center h-screen bg-cover bg-center ">
       <div
@@ -32,15 +32,25 @@ const [email, setEmail] = useState("");
           <span className="text-6xl">G.M.P</span>
           <span className="">Admin</span>
         </div>
-        <form onSubmit={handleLogin} className="flex flex-col items-center w-full">
+        <form onSubmit={handleRegister} className="flex flex-col items-center w-full">
+          <div className="flex flex-col">
+            <input 
+                type="text"
+                placeholder="Nom"
+                value={name}
+                required
+                className="w-[320px] h-[40px] mt-5 bg-transparent border-b-2 text-white text-lg pl-1 focus:outline-none"
+                onChange={e => setName(e.target.value)}
+            />
+          </div>
           <div className="flex flex-col">
             <input
               type="text"
               placeholder="Mail"
-              required
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              required
               className="w-[320px] h-[40px] mt-5 bg-transparent border-b-2 text-white text-lg pl-1 focus:outline-none"
+              onChange={e => setEmail(e.target.value)}
             />
             <span >
               
@@ -50,11 +60,10 @@ const [email, setEmail] = useState("");
             <input
               type="password"
               placeholder="Mot de passe"
-              required
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              required
               className="w-[320px] h-[40px] mt-5 bg-transparent border-b-2  text-white text-lg pl-1 focus:outline-none"
-                
+              onChange={e => setPassword(e.target.value)}
              
             />
             <span
@@ -73,21 +82,21 @@ const [email, setEmail] = useState("");
            
           >
            
-            Se connecter
+            S'inscrire
           </button>
          
         </form>
         <div className="mt-4">
-      <span className="text-white">
-        Vous n'avez pas encore un compte ?{" "}
-        <Link to="/" className="text-red-400 underline hover:text-white">
-          S'inscrire
-        </Link>
-      </span>
-    </div>
+  <span className="text-white">
+    Vous avez déjà un compte ?{" "}
+    <Link to="/aeromemo/login" className="text-red-400 underline hover:text-white">
+      Se connecter
+    </Link>
+  </span>
+</div>
       </div>
     </div>
   );
 };
 
-export default Login;
+export default Register;
