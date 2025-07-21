@@ -13,8 +13,8 @@ const [email, setEmail] = useState("");
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const user = await AuthService.login({ email, password });
-      alert(`Bienvenue ${user.name}`);
+       await AuthService.login({ email, password });
+      // alert(`Bienvenue ${user.name}`);
       navigate("/aeromemo/home"); // Redirection vers la page d'accueil
     } catch (err) {
       alert("Échec de la connexion");
