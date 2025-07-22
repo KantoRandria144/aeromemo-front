@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import pattern from "../../../src/assets/pattern.png";
+import DropdownUser from "./DropdownUser";
+import { AuthService } from "../../services/User/AuthServices";
 const Header = (props: {
     sidebarOpen: string | boolean | undefined;
   setSidebarOpen: (arg0: boolean) => void;
@@ -11,15 +13,22 @@ const Header = (props: {
     userid: "",
   });
 
-  useEffect(() => {
-    setUserConnected({
-      ...userConnected,
-      name: props?.userConnected?.name,
-      email: props?.userConnected?.sub,
-      userid: props?.userConnected?.jti,
-    });
-  }, [props.userConnected]);
+useEffect(() => {
+  const fetchUser = async () => {
+    try {
+      const user = await AuthService.getCurrentUser();
+      setUserConnected({
+        name: user.name,
+        email: user.email,
+        userid: user.id // or whatever the actual property name is
+      });
+    } catch (error) {
+      console.error("Utilisateur non connecté ou session expirée");
+    }
+  };
 
+  fetchUser();
+}, []);
     return (
         <>
             <header className="sticky top-0 z-999 flex w-full py-2 pr-6 bg-white drop-shadow-1 dark:bg-tertiaryGreen bg-cover bg-no-repeat dark:drop-shadow-none"
@@ -72,7 +81,7 @@ const Header = (props: {
                 </div>
                 <div className="flex items-center gap-3 2xsm:gap-7">
                     <ul className="flex items-center gap-2 2xsm:gap-4">
-                        
+                        <DropdownUser userConnected={userConnected} />
                     </ul>
                 </div>
             </header>
