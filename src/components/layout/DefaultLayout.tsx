@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 import NavigateBar from "../Sidebar/NavigateBar";
 import Header from "../Header";
 import { AuthService } from "../../services/User/AuthServices";
 
-const DefaultLayout = () => {
+const DefaultLayout: React.FC<{children: ReactNode }> = ({children}) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [userConnected, setUserConnected] = useState({
         name: "",
@@ -43,6 +43,9 @@ const DefaultLayout = () => {
                         userConnected={userConnected}
                         setSidebarOpen={setSidebarOpen}
                     />
+                    <main>
+                      <div className="w-full">{children}</div>
+                    </main>
                 </div>
             </div>
         </div>
