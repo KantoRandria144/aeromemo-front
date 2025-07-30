@@ -1,5 +1,6 @@
 import DefaultLayout from "../../components/layout/DefaultLayout";
-import CustomInput from "../../components/UIElements/CustomInput";
+import CustomInput from "../../components/UIElements/Input/CustomInput";
+
 
 const Accueil = () => {
     return (
