@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { InputProps } from "../../types/input";
+import { InputProps } from "../../../types/input";
+
 const round = {
   full: "rounded-full",
   medium: "rounded-md",
