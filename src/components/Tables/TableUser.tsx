@@ -196,7 +196,6 @@ const TableUser = ({
               });
             }}
           />
-          <p></p>
           <CustomSelect
             label="Département"
             placeholder="Département"

@@ -4,6 +4,8 @@ import Login from "./Pages/Login/Login";
 import PageTitle from "./components/PageTitle";
 import Register from "./Pages/Login/Register";
 import Accueil from "./Pages/Home/Accueil";
+import ManageUser from "./Pages/Admin/ManageUser";
+import ManageHierarchie from "./Pages/Admin/ManageHierarchie";
 
 
 const App = () => {
@@ -36,7 +38,25 @@ const App = () => {
               <Accueil />
             </>
           }
-        /> 
+        />
+        <Route
+          path="/aeromemo/admin/user"
+          element={
+            <>
+              <PageTitle  title="Admin"/> 
+              <ManageUser />
+            </>
+          }
+        />
+        <Route 
+          path="/aeromemo/admin/organigramme"
+          element={
+            <>
+              <PageTitle title="Admin"/>
+              <ManageHierarchie />
+            </>
+          }
+        />
 
        
       </Routes>

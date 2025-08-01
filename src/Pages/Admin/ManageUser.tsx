@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { initializeSpaceRanking } from "../../services/Project";
-import { getAllMyHabilitation } from "../../services/Function/UserFunctionService";
+// import { initializeSpaceRanking } from "../../services/Project";
 import { IMyHabilitation } from "../../types/Habilitation";
 import { PulseLoader } from "react-spinners";
 import { Notyf } from "notyf";
@@ -8,6 +7,7 @@ import "notyf/notyf.min.css";
 import { actualiseUserData, getAllUserPaginated, getAllUsers } from "../../services/User/UserServices";
 import DefaultLayout from "../../components/layout/DefaultLayout";
 import TableUser from "../../components/Tables/TableUser";
+import { getAllMyHabilitation } from "../../services/Function/UserFonctionService";
 
 const notyf = new Notyf({ position: { x: "center", y: "top" } });
 
@@ -86,26 +86,24 @@ const ManageUser = () => {
       setLoadingActualise(false);
     }
   };
-  const handleInitializeSpaceRanking = async () => {
-    setLoadingInitializeSpaceRanking(true);
-    try {
-      await initializeSpaceRanking();
-      notyf.success("space ranking initialisé");
-    } catch (error) {
-      notyf.error("Une erreur s'est produite lors de l'initialisation");
-    } finally {
-      setLoadingInitializeSpaceRanking(false);
-    }
-  };
+  // const handleInitializeSpaceRanking = async () => {
+  //   setLoadingInitializeSpaceRanking(true);
+  //   try {
+  //     await initializeSpaceRanking();
+  //     notyf.success("space ranking initialisé");
+  //   } catch (error) {
+  //     notyf.error("Une erreur s'est produite lors de l'initialisation");
+  //   } finally {
+  //     setLoadingInitializeSpaceRanking(false);
+  //   }
+  // };
   return (
     <DefaultLayout>
       <div className="mx-2 p-4 md:mx-10">
         <>
           {/* ACTUALIZE START */}
           <div
-            className={`w-full space-x-2 mb-2 items-center ${
-              myHabilitation?.admin?.actualizeUserData ? "flex" : "hidden"
-            }`}
+            className={`w-full space-x-2 mb-2 items-center `}
           >
             <button
               type="button"
@@ -122,11 +120,11 @@ const ManageUser = () => {
               )}
               Actualiser
             </button>
-            <button
+           {/* <button
               type="button"
               className={`md:w-fit gap-2 flex justify-center w-full cursor-pointer mt-2 py-2 lg:px-3 xl:px-2  text-center font-medium text-sm text-white hover:bg-opacity-90  border border-primaryGreen bg-primaryGreen rounded-lg dark:border-darkgreen dark:bg-darkgreen dark:hover:bg-opacity-90  md:ease-in md:duration-300 md:transform  
                    `}
-              onClick={handleInitializeSpaceRanking}
+              // onClick={handleInitializeSpaceRanking}
             >
               {loadingInitializeSpaceRanking ? (
                 <div>
@@ -136,7 +134,7 @@ const ManageUser = () => {
                 <></>
               )}
               Initialize space ranking
-            </button>
+            </button> */ }
           </div>
           {/* ACTUALIZE END */}
         </>
