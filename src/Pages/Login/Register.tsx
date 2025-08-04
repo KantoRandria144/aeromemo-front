@@ -87,13 +87,16 @@ const [name, setName] = useState("");
          
         </form>
         <div className="mt-4">
-  <span className="text-white">
-    Vous avez déjà un compte ?{" "}
-    <Link to="/aeromemo/login" className="text-red-400 underline hover:text-white">
-      Se connecter
-    </Link>
-  </span>
-</div>
+          <span className="text-white">
+            Vous avez déjà un compte ?{" "}
+            <Link to="/aeromemo/login" className="text-red-400 underline hover:text-white">
+              Se connecter
+            </Link>
+          </span>
+        </div>
+        <div className="mt-4">
+          <span className="text-white"> Se connecter via <Link to="/aeromemo/loginAero" className="text-red-400 underline hover:text-white">LDAP</Link></span>
+        </div>
       </div>
     </div>
   );

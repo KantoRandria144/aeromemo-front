@@ -6,12 +6,22 @@ import Register from "./Pages/Login/Register";
 import Accueil from "./Pages/Home/Accueil";
 import ManageUser from "./Pages/Admin/ManageUser";
 import ManageHierarchie from "./Pages/Admin/ManageHierarchie";
+import LDAPLogin from "./Pages/Login/LDAPLogin";
+import Home from "./Pages/Home/Home";
 
 
 const App = () => {
   return (
     <>
       <Routes>
+        <Route 
+          path="/aeromemo/loginAero"
+          element={
+            <>
+              <LDAPLogin />
+            </>
+          }
+        />
         <Route
           index
           element={
@@ -36,6 +46,15 @@ const App = () => {
             <>
               <PageTitle title="Accueil"/>
               <Accueil />
+            </>
+          }
+        />
+        <Route
+          path="/aeromemo/aero-home"
+          element={
+            <>
+            <PageTitle title="Home" />
+            <Home/>
             </>
           }
         />
