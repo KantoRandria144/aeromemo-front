@@ -8,6 +8,8 @@ import ManageUser from "./Pages/Admin/ManageUser";
 import ManageHierarchie from "./Pages/Admin/ManageHierarchie";
 import LDAPLogin from "./Pages/Login/LDAPLogin";
 import Home from "./Pages/Home/Home";
+import CreateReunion from "./Pages/Reunion/CreateReunion";
+import Planification from "./Pages/Reunion/Planification/Planification";
 
 
 const App = () => {
@@ -73,6 +75,24 @@ const App = () => {
             <>
               <PageTitle title="Admin"/>
               <ManageHierarchie />
+            </>
+          }
+        />
+        <Route 
+          path="/aeromemo/créer-réunion"
+          element={
+            <>
+              <PageTitle title="Réunion" />
+              <CreateReunion/>
+            </>
+          }
+        />
+        <Route
+          path="/aeromemo/planification"
+          element={
+            <>
+              <PageTitle  title="Planification"/>
+              <Planification/>
             </>
           }
         />

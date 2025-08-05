@@ -389,9 +389,9 @@ const NavigationBar = ({
                                             <ul className="mb-5.5 mt-4 flex flex-col gap-2.5 pl-6">
                                                 <li>
                                                 <NavLink 
-                                                    to="/gmp/project/list"
+                                                    to="/aeromemo/planification"
                                                     className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-tertiaryGreen dark:hover:bg-meta-4  ${
-                                                        pathname.includes("gmp/project/list") &&
+                                                        pathname.includes("aeromemo/planification") &&
                                                         "bg-tertiaryGreen dark:bg-secondaryGreen"
                                                     }`}
                                                 >
@@ -461,9 +461,9 @@ const NavigationBar = ({
                                                 </li>
                                                 <li>
                                                     <NavLink
-                                                    to="/gmp/project/projetarchivés"
+                                                    to="/aeromemo/créer-réunion"
                                                     className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-tertiaryGreen dark:hover:bg-meta-4  ${
-                                                        pathname.includes("gmp/project/projetarchivés") &&
+                                                        pathname.includes("aeromemo/créer-réunion") &&
                                                         "bg-tertiaryGreen dark:bg-secondaryGreen"
                                                     }`}
                                                     >

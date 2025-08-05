@@ -1,10 +1,10 @@
 import { ReactNode, useState, useEffect } from "react";
 import NavigateBar from "../Sidebar/NavigateBar";
-import Header from "../Header";
 import { IDecodedToken } from "../../types/user";
 import { IMyHabilitation } from "../../types/Habilitation";
 import { getAllMyHabilitation } from "../../services/Function/UserFonctionService";
 import { decodeToken } from "../../services/Function/TokenService";
+import Head from "../Header/Head";
 
 const LDAPLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -37,15 +37,14 @@ const LDAPLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
         {/* ===== SIDEBAR START ===== */}
         <NavigateBar
           sidebarOpen={sidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-          
+          setSidebarOpen={setSidebarOpen}    
         />
         {/* ===== SIDEBAR START END ===== */}
 
         {/* ===== CONTENT START ===== */}
         <div className="relative bg-whiten dark:bg-black flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
           {/* ===== HEADER START ===== */}
-          <Header
+          <Head
             sidebarOpen={sidebarOpen}
             userConnected={decodedToken}
             setSidebarOpen={setSidebarOpen}
