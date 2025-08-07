@@ -2,24 +2,48 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import SidebarLinkGroup from "./SidebarlinkGroup";
 import Logo from "../../assets/ravinala.jpg";
+import { IMyHabilitation } from "../../types/Habilitation";
+import { decodeToken } from "../../services/Function/TokenService";
+import { IDecodedToken } from "../../types/user";
  interface SidebarProps {
-        sidebarOpen: boolean;
-        setSidebarOpen: (arg: boolean) => void;
+       sidebarOpen: boolean;
+  setSidebarOpen: (arg: boolean) => void;
+  myHabilitation: IMyHabilitation | undefined;
     }
-const NavigationBar = ({
+const NavigateBar = ({
     sidebarOpen,
     setSidebarOpen,
+    myHabilitation,
 }: SidebarProps) => {
-   const location = useLocation();
-   const { pathname } = location;
+   const [decodedToken, setDecodedToken] = useState<IDecodedToken>();
+  const location = useLocation();
+  const { pathname } = location;
 
-   const storedSidebarExpanded = localStorage.getItem("sidebar-expanded");
+  const storedSidebarExpanded = localStorage.getItem("sidebar-expanded");
   const [sidebarExpanded, setSidebarExpanded] = useState(
     storedSidebarExpanded === null ? false : storedSidebarExpanded === "true"
   );
+  const [isAdminHabilitate, setIsAdminHabilitate] = useState(false);
 
   const trigger = useRef<any>(null);
   const sidebar = useRef<any>(null);
+
+  useEffect(() => {
+    let admin = localStorage.getItem("_au_ad");
+
+    if (admin) {
+      setIsAdminHabilitate(true);
+    }
+    const token = localStorage.getItem("_au_pr");
+    if (token) {
+      try {
+        const decoded = decodeToken("pr");
+        setDecodedToken(decoded);
+      } catch (error) {
+        console.error(`Invalid token ${error}`);
+      }
+    }
+  }, []);
 
   //close on click outside
   useEffect(() => {
@@ -54,6 +78,7 @@ const NavigationBar = ({
       document.querySelector("body")?.classList.remove("sidebar-expanded");
     }
   }, [sidebarExpanded]);
+
     return (
         <aside 
              ref={sidebar}
@@ -93,11 +118,11 @@ const NavigationBar = ({
             {/* ===================== SIDEBAR NAVIGATION MENU START ============================ */}
                 <nav className="mt-5 h-full py-4 px-4 lg:mt-9 lg:px-6 flex flex-col ">
                 {/* ===================== ADMIN NAVIGATION MENU START ============================ */}
-                    <div>
+                    <div className={`${isAdminHabilitate ? "" : "hidden"}`}>
                         <ul>
                             <SidebarLinkGroup
                                 activeCondition={
-                                pathname === "/gmp/project/admin" ||
+                                pathname === "/aeromemo/admin" ||
                                 pathname.includes("admin")
                                 }
                             >
@@ -107,7 +132,7 @@ const NavigationBar = ({
                                             <NavLink 
                                                 to="#"
                                                 className={`group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-tertiaryGreen dark:hover:bg-meta-4 ${
-                                                (pathname === "/gmp/project/admin" ||
+                                                (pathname === "/aeromemo/admin" ||
                                                     pathname.includes("admin")) &&
                                                 "bg-tertiaryGreen dark:bg-secondaryGreen"
                                                 }`}
@@ -511,4 +536,4 @@ const NavigationBar = ({
     );
 };
 
-export default NavigationBar;
+export default NavigateBar;

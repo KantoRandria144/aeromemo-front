@@ -4,6 +4,9 @@ import { getAllHabilitation, getHabilitationById } from "../../services/User/Hab
 import { getAllMyHabilitation } from "../../services/Function/UserFonctionService";
 import { IMyHabilitation } from "../../types/Habilitation";
 import TableAccess from "../../components/Tables/TableAccess";
+import AddAccessModal from "../../components/Modals/Access/AddAccessModal";
+import UpdateAccessModal from "../../components/Modals/Access/UpdateAccessModal";
+import ConfirmSuppressAccess from "../../components/Modals/Access/ConfirmSuppressAccess";
 
 const ManageAccess = () => {
       const [isAddModalAccessVisible, setIsModalAccessVisible] = useState(false);
@@ -70,11 +73,11 @@ const ManageAccess = () => {
           }`}
         >
           <button
-            onClick={() => {
-              if (myHabilitation?.admin?.createHabilitation) {
-                setIsModalAccessVisible(true);
-              }
-            }}
+            // onClick={() => {
+            //   if (myHabilitation?.admin?.createHabilitation) {
+            //     setIsModalAccessVisible(true);
+            //   }
+            // }}
             className={`md:w-fit gap-2 flex justify-center w-full cursor-pointer mt-2 py-2 lg:px-3 xl:px-2  text-center font-medium text-sm text-white hover:bg-opacity-90  border border-primaryGreen bg-primaryGreen rounded-lg dark:border-darkgreen dark:bg-darkgreen dark:hover:bg-opacity-90  md:ease-in md:duration-300 md:transform  
               `}
           >

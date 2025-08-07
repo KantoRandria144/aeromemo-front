@@ -1,15 +1,14 @@
 import { Route, Routes } from "react-router-dom";
 import "./App.css";
-import Login from "./Pages/Login/Login";
 import PageTitle from "./components/PageTitle";
-import Register from "./Pages/Login/Register";
 import Accueil from "./Pages/Home/Accueil";
 import ManageUser from "./Pages/Admin/ManageUser";
 import ManageHierarchie from "./Pages/Admin/ManageHierarchie";
-import LDAPLogin from "./Pages/Login/LDAPLogin";
-import Home from "./Pages/Home/Home";
 import CreateReunion from "./Pages/Reunion/CreateReunion";
 import Planification from "./Pages/Reunion/Planification/Planification";
+import ManageAccess from "./Pages/Admin/ManageAccess";
+import Login from "./Pages/Login/Login";
+import { SetStateAction } from "react";
 
 
 const App = () => {
@@ -17,14 +16,15 @@ const App = () => {
     <>
       <Routes>
         <Route 
-          path="/aeromemo/loginAero"
+          index
           element={
             <>
-              <LDAPLogin />
+              <PageTitle title="Login" />
+              <Login />
             </>
           }
         />
-        <Route
+        {/* <Route
           index
           element={
             <>
@@ -41,7 +41,7 @@ const App = () => {
             <Login />
             </>
           }
-        />
+        /> */}
         <Route 
           path="/aeromemo/home"
           element={
@@ -51,15 +51,7 @@ const App = () => {
             </>
           }
         />
-        <Route
-          path="/aeromemo/aero-home"
-          element={
-            <>
-            <PageTitle title="Home" />
-            <Home/>
-            </>
-          }
-        />
+        
         <Route
           path="/aeromemo/admin/user"
           element={
@@ -79,6 +71,15 @@ const App = () => {
           }
         />
         <Route 
+          path="/aeromemo/admin/access"
+          element={
+            <>
+              <PageTitle title="Admin"/>
+              <ManageAccess/>
+            </>
+          }
+        />
+        <Route 
           path="/aeromemo/créer-réunion"
           element={
             <>
@@ -87,15 +88,27 @@ const App = () => {
             </>
           }
         />
-        <Route
+         <Route
           path="/aeromemo/planification"
           element={
             <>
               <PageTitle  title="Planification"/>
-              <Planification/>
+              <Planification search={{
+                title: "",
+                member: "",
+                priority: "",
+                criticity: "",
+                completionPercentage: "",
+                startDate: undefined,
+                endDate: undefined
+              }} availableUser={[]} selectedUserInput={[]} setSelecteduserInput={function (value: SetStateAction<{ id: string; name: string; email: string; }[]>): void {
+                throw new Error("Function not implemented.");
+              } } setSearch={function (value: SetStateAction<{ title: string; member: string; priority: string; criticity: string; completionPercentage: string; startDate: string | undefined; endDate: string | undefined; }>): void {
+                throw new Error("Function not implemented.");
+              } }/>
             </>
           }
-        />
+        /> 
 
        
       </Routes>

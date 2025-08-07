@@ -311,7 +311,7 @@ const TableAccess = ({
               <th className="py-4 px-4   font-bold  text-white dark:text-white xl:pl-11">
                 Admin
               </th>
-              <th className="py-4 px-4   font-bold  text-white dark:text-white xl:pl-11">
+              {/* <th className="py-4 px-4   font-bold  text-white dark:text-white xl:pl-11">
                 Projet
               </th>
               <th className="py-4 px-4 max-w-40  font-bold  text-white dark:text-white xl:pl-11">
@@ -319,7 +319,7 @@ const TableAccess = ({
               </th>
               <th className="py-4 px-4 max-w-40  font-bold  text-white dark:text-white xl:pl-11">
                 Inter-contrat
-              </th>
+              </th> */}
             </tr>
           </thead>
           <tbody>
