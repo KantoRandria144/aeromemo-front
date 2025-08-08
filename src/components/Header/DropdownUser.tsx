@@ -4,7 +4,7 @@ import { logout } from "../../services/login";
 
 import UserOne from "../../assets/user.png";
 
-const DropdownUser = (userConnected: any) => {
+const DropdownUser = ({ userConnected }: { userConnected: any }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const trigger = useRef<any>(null);

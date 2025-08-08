@@ -40,13 +40,14 @@ export enum EtatReunion {
 }
 
 export interface Participant {
-    id: string;
-    reunionid: string;
+    id?: string;
+    type: 'Interne' | 'Externe'; // Type original basé sur le domaine email
+    role: 'Obligatoire' | 'Facultatif'; // Nouveau champ pour le rôle
+    state: 'En attente' | 'Confirmé' | 'Refusé';
     userid: string;
-    type: "Obligatoire" | "Facultatif";
-    state: "En attente" | "Acceptée" | "Réfusé";
+    email: string;
+    reunionid?: string;
 }
-
 export interface CreateReunionResponse {
     message: string;
     webLink?: string;
