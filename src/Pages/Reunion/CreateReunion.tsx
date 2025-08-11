@@ -7,7 +7,8 @@ import Breadcrumb from "../../components/BreadCrumbs/BreadCrumb";
 import DefaultLayout from "../../components/layout/DefaultLayout";
 import CustomInput from "../../components/UIElements/Input/CustomInput";
 import { reunionService } from '../../services/Reunion/reunionService';
-import { getInitials } from "../../services/Function/UserFunctionService";
+import { getInitials } from '../../services/Function/UserFonctionService';
+
 
 interface ReunionFormState {
     titre: string;

@@ -12,6 +12,7 @@ const endPoint = import.meta.env.VITE_API_ENDPOINT;
 // login
 export const useAuthService = () => {
   const { login } = useAuth();
+
   const loginUser = async (userCredentials: {
     username: string;
     password: string;
@@ -27,6 +28,7 @@ export const useAuthService = () => {
       if (response.data && response.data.type === "success") {
         let adminPrivilege = false;
         const habilitation = response.data.user.habilitations;
+
         habilitation?.forEach(
           (hab: {
             habilitationAdmins: HabilitationAdminInterface[];
@@ -45,14 +47,17 @@ export const useAuthService = () => {
                 }
               }
             );
-            
           }
         );
 
+        // Sauvegarde du token selon le rôle
         if (adminPrivilege) {
           localStorage.setItem("_au_ad", response.data.token);
         }
-        
+        // Toujours sauvegarder _au_pr pour détecter l'utilisateur connecté
+        localStorage.setItem("_au_pr", response.data.token);
+
+        // Met à jour le contexte Auth
         login(response.data.user);
       }
 
@@ -70,8 +75,7 @@ export const useAuthService = () => {
   return { loginUser };
 };
 
-//logout
-
+// logout
 export const logout = async () => {
   try {
     const response = await axios.post(`${endPoint}/api/Login/logout`);

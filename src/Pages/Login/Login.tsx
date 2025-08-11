@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PuffLoader } from "react-spinners";
 import fond from "../../../src/assets/DJI_0028.jpg";
@@ -16,8 +16,16 @@ const Login = () => {
     password: "",
     error: "",
   });
+  useEffect(() => {
+    const projectStorage = localStorage.getItem("_au_pr");
+    console.log("Valeur de _au_pr dans localStorage :", projectStorage);
+    if (projectStorage) {
+      navigate("/aeromemo/home");
+    }
+  }, []);
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   const navigate = useNavigate();
+  
 
   const handleLogin = async (e: { preventDefault: () => void }) => {
     e.preventDefault();

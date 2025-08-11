@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import DarkModeSwitcher from "./DarkModeSwitcher";
 import DropdownUser from "./DropdownUser";
 import pattern from "../../../src/assets/pattern.png";
-import NotificationDropDown from "./NotificationDropDown";
+
 
 const Header = (props: {
   sidebarOpen: string | boolean | undefined;
@@ -16,6 +16,7 @@ const Header = (props: {
   });
 
   useEffect(() => {
+    console.log("props.userConnected reçu dans useEffect:", props?.userConnected);
     setUserConnected({
       ...userConnected,
       name: props?.userConnected?.name,
@@ -78,7 +79,6 @@ const Header = (props: {
       <div className="flex items-center gap-3 2xsm:gap-7">
         <ul className="flex items-center gap-2 2xsm:gap-4">
           <DarkModeSwitcher />
-          <NotificationDropDown userConnected={userConnected}/>
           <DropdownUser userConnected={userConnected} />
         </ul>
       </div>

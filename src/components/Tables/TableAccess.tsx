@@ -89,6 +89,27 @@ const TableAccess = ({
       setIsModalModifAccessVisible(true);
     }
   };
+
+  console.log({
+  accessSelected,
+  myHabilitation,
+  options: accessSelected.length > 1
+    ? ["Supprimer"].filter((action) => {
+        if (!myHabilitation?.admin.deleteHabilitation && action === "Supprimer") {
+          return false;
+        }
+        return true;
+      })
+    : ["Modifier", "Supprimer"].filter((action) => {
+        if (!myHabilitation?.admin.deleteHabilitation && action == "Supprimer") {
+          return false;
+        }
+        if (!myHabilitation?.admin.updateHabilitation && action === "Modifier") {
+          return false;
+        }
+        return true;
+      }),
+});
   return (
     <div className="bg-white min-h-[80vh] pt-2 shadow-1 rounded-lg border border-zinc-200 dark:border-strokedark dark:bg-boxdark">
       {/* =====FILTER START===== */}

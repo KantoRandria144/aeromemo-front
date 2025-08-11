@@ -4,7 +4,7 @@ import { logout } from "../../services/login";
 
 import UserOne from "../../assets/user.png";
 
-const DropdownUser = ({ userConnected }: { userConnected: any }) => {
+const DropdownUser = (userConnected: any) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const trigger = useRef<any>(null);
@@ -58,10 +58,10 @@ const DropdownUser = ({ userConnected }: { userConnected: any }) => {
       >
         <span className="hidden text-right lg:block">
           <span className="block text-sm font-medium text-black dark:text-white">
-            {userConnected?.userConnected?.name}
+            {userConnected?.name}
           </span>
           <span className="block text-xs">
-            {userConnected?.userConnected?.email}
+            {userConnected?.email}
           </span>
         </span>
 
