@@ -1,8 +1,73 @@
+import { useEffect, useState } from "react";
+import MeetingCard from "../../components/card/MeetingCard";
+import MeetingsList from "../../components/card/MeetingsList";
+import MeetingTimeCard from "../../components/card/MeetingTimeCard";
+import BarChart from "../../components/chart/BarChart";
+import PieChart from "../../components/chart/PieChart";
 import DefaultLayout from "../../components/layout/DefaultLayout";
 import CustomInput from "../../components/UIElements/Input/CustomInput";
+import { decodeToken } from "../../services/Function/TokenService";
+import { getMySubordinatesNameAndId } from "../../services/User/UserServices";
 
+
+type TSubordinate = {
+    id: string;
+    name: string;
+    email: string;
+};
+
+type Reunion = {
+    id: string;
+    title: string;
+    dateDebut: string;
+    dateFin: string;
+};
 
 const Accueil = () => {
+const [chartData, setChartData] = useState<{ name: string; data: number[]}[]>([]);
+
+const [search, setSearch] = useState({
+    ids: [] as string [],
+    dateDebut: undefined as string | undefined ,
+    dateFin: undefined as string | undefined,
+});
+
+const [selectedUserInput, setSelectUserInput] = useState<TSubordinate[]>([]);
+
+const [subordinates, setSuborinates] = useState<TSubordinate[]>([]);
+const [isLoading, setIsLoading] = useState(false);
+const [isInitialized, setIsInitialized] = useState(false);
+
+const categories = ["Projets", "Transverses"];
+
+useEffect(() => {
+    const initializeComponent = async () => {
+        setIsLoading(true);
+        try {
+            const token = localStorage.getItem("_au_pr");
+            if(!token) {
+                console.error("No token found");
+                return;
+            }
+
+            const decoded = decodeToken("pr")
+
+            if(!decoded?.jti) {
+                console.error("Invalid token: no JTI found");
+                return;
+            }
+
+            const myId = decoded.jti;
+            const subData: TSubordinate[] = await getMySubordinatesNameAndId(myId);
+
+            const me: TSubordinate = {
+                id: decoded.jti,
+                name: decoded.name || "Me",
+                email: decoded.sub || "",
+            };
+        }
+    }
+})
     return (
        <DefaultLayout>
             <div className="mx-2 py-4 md:mx-10 space-y-10"> 
@@ -77,11 +142,114 @@ const Accueil = () => {
                         </div>      
                     </div>
                     
-
+                {/* ======== CARDs  START ========= */}
+                    
+                {/* ======== CARDs  END ========= */}
                 </div>
                 {/* ============ FILTER END ============= */}
                 {/* ============ CARD START ============= */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                        <MeetingCard 
+                            title="Réunions de la journée"
+                            meetings={[
+                            {
+                                dateDebut: "08:30",
+                                dateFin: "09:30",
+                                emplacement: "Salle A1",
+                                title: "Bâtiment Principal"
+                            },
+                            {
+                                dateDebut: "14:00",
+                                dateFin: "16:00",
+                                emplacement: "Salle B2"
+                            }
+                            ]}
+                        />    
+                         <MeetingTimeCard 
+                            title="Temps passée en réunion"
+                            value="4 h"
+                            period="Aujourd'hui"
+                            colorScheme="green"
+                            icon="users"
+                        />
+                        <MeetingTimeCard 
+                            title="CR réunion généra"
+                            value="40 %"
+                            period="Juin"
+                            colorScheme="cyan"
+                            icon="trending-up"
+                        />
+                        <MeetingTimeCard 
+                            title="Taux de participation"
+                            value="85 %"
+                            period="Cette semaine"
+                            colorScheme="blue"
+                            icon="target"
+                        />
+                    </div>
                 {/* ============ CARD END ============= */}
+                {/* ============ CHART START ========== */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Temps passée en réunion</h3>
+                        <BarChart
+                            labels={["04 Juin", "17 Juin", "22 Juin", "24 Juin"]}
+                            data={[2.5, 4, 2.5, 2.5]}
+                            maxY={5}
+                        />
+                    </div>
+                    <MeetingsList 
+                        meetings={
+                            [
+                                {
+                                    title: "Réunion Transverse",
+                                    dateDebut: "24 Juin",
+                                    heureDebut: "9h" ,
+                                    heureFin: "10h",
+                                    role: "Organisateur" as const,
+                                },
+                                {
+                                    title: "Réunion Transverse",
+                                    dateDebut: "27 Juin",
+                                    heureDebut: "8h",
+                                    heureFin:"10h",
+                                    role: "Organisateur" as const,
+                                },
+                                {
+                                    title: "Réunion Projet",
+                                    dateDebut: "27 Juin",
+                                    heureDebut: "14h",
+                                    heureFin:"16h",
+                                    role: "Participant" as const,
+                                },
+                                {
+                                    title: "Réunion Transverse",
+                                    dateDebut: "30 Juin",
+                                    heureDebut: "9h",
+                                    heureFin:"10h",
+                                    role: "Participant" as const,
+                                },
+                            ]
+                        }
+                    />
+                </div>
+                {/* ============ BAR CHART END ============ */}
+                {/* ++++++++++++ PIE CHART START ========== */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4 w-427 h-427">Département utilisant la salle</h3>
+                        <div className="flex items-center justify-center">
+                            <PieChart
+                                labels={["DSI", "DT", "DAF", "DRH"]}
+                                data={[35.7, 16.1, 33.7, 14.5]}
+                                colors={["#06b6d4", "#f59e0b", "#ef4444", "#8b5cf6"]}
+                                legendPosition="right"
+                            />
+                        </div>
+                    </div>
+                </div>
+                {/* ============ PIE CHART END ============ */}
+
             </div>
        </DefaultLayout>
             
