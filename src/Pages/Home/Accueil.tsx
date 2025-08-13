@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import MeetingCard from "../../components/card/MeetingCard";
 import MeetingsList from "../../components/card/MeetingsList";
 import MeetingTimeCard from "../../components/card/MeetingTimeCard";
@@ -8,6 +8,7 @@ import DefaultLayout from "../../components/layout/DefaultLayout";
 import CustomInput from "../../components/UIElements/Input/CustomInput";
 import { decodeToken } from "../../services/Function/TokenService";
 import { getMySubordinatesNameAndId } from "../../services/User/UserServices";
+import CustomInputUserSpecifiedSearch from "../../components/UIElements/Input/CustomInputUserSpecifiedSearch";
 
 
 type TSubordinate = {
@@ -32,7 +33,7 @@ const [search, setSearch] = useState({
     dateFin: undefined as string | undefined,
 });
 
-const [selectedUserInput, setSelectUserInput] = useState<TSubordinate[]>([]);
+const [selectedUserInput, setSelectedUserInput] = useState<TSubordinate[]>([]);
 
 const [subordinates, setSuborinates] = useState<TSubordinate[]>([]);
 const [isLoading, setIsLoading] = useState(false);
@@ -65,9 +66,90 @@ useEffect(() => {
                 name: decoded.name || "Me",
                 email: decoded.sub || "",
             };
+
+            const allUsers = [...subData, me];
+            setSuborinates(allUsers);
+
+            const allUserIds = allUsers.map((user) => user.id);
+            setSearch((prev) => ({...prev, ids: allUserIds}));
+
+            
+        } catch (error) {
+            console.error("Initialization error:", error);
+        } finally {
+            setIsLoading(false);
+            setIsInitialized(true);
         }
+    };
+    if (!isInitialized) {
+      initializeComponent();
     }
-})
+
+}, [isInitialized]);
+
+  // Remove a selected user
+  const handleRemoveUserSelectedInput = useCallback(
+    async (userId: string) => {
+      const updatedUsers = selectedUserInput.filter(
+        (user) => user.id !== userId
+      );
+      setSelectedUserInput(updatedUsers);
+
+      // Determine which IDs to use
+      const userIds =
+        updatedUsers.length > 0
+          ? updatedUsers.map((user) => user.id)
+          : subordinates.map((user) => user.id);
+
+      if (selectedUserInput.length === 1) {
+        //await fetchDashboardData(userIds);
+      }
+    },
+    [selectedUserInput, subordinates]
+  );
+
+  // Reset all filters
+  const handleResetFilters = useCallback(async () => {
+    const allUserIds = subordinates.map((user) => user.id);
+
+    setSelectedUserInput([]);
+    setSearch({
+      ids: allUserIds,
+      dateDebut: undefined,
+      dateFin: undefined,
+    });
+
+    //await fetchDashboardData(allUserIds);
+  }, [subordinates]);
+
+  // Handle search button click
+  const handleSearch = useCallback(async () => {
+    // Determine which IDs to use
+    const userIds =
+      selectedUserInput.length > 0
+        ? selectedUserInput.map((user) => user.id)
+        : subordinates.map((user) => user.id);
+
+    if (
+      search.dateDebut !== undefined ||
+      search?.dateFin !== undefined ||
+      selectedUserInput.length > 0
+    ) {
+      //await fetchDashboardData(userIds);
+    }
+  }, [selectedUserInput, subordinates, search]);
+
+   // Get available subordinates (not already selected)
+  const availableSubordinates = subordinates.filter(
+    (sub) => !selectedUserInput.some((selected) => selected.id === sub.id)
+  );
+
+    // Determine if filters should be shown
+  const hasActiveFilters =
+    search.dateDebut !== undefined ||
+    search.dateFin !== undefined ||
+    selectedUserInput.length > 0;
+
     return (
        <DefaultLayout>
             <div className="mx-2 py-4 md:mx-10 space-y-10"> 
@@ -90,12 +172,13 @@ useEffect(() => {
                             />
                         </div> 
                         {/* ======seul le manager ====== */}
-                        <CustomInput
-                            type="text"
-                            value={""}
-                            placeholder="Nom"
+                        <CustomInputUserSpecifiedSearch
                             label="Collaborateur"
                             rounded="medium"
+                            placeholder="Nom"
+                            user={availableSubordinates}
+                            userSelected={selectedUserInput}
+                            setUserSelected={setSelectedUserInput}
                         />
                         {/* ======seul le manager ====== */}
                         <CustomInput
