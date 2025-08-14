@@ -257,7 +257,7 @@ const CreateReunion = () => {
                                 <button 
                                     type="submit" 
                                     
-                                    className={`md:w-fit gap-2 w-full cursor-pointer py-2 px-5 text-center font-medium text-white hover:bg-opacity-90 lg:px-8 border rounded-lg `}
+                                    className="md:w-fit gap-2 w-full cursor-pointer py-2 px-5 text-center font-semibold text-white hover:bg-opacity-90 lg:px-8 xl:px-5 border border-primaryGreen bg-primaryGreen rounded-lg dark:border-darkgreen dark:bg-darkgreen dark:hover:bg-opacity-90"
                                 >
                                     
                                     
