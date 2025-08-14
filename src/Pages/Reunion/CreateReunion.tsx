@@ -9,7 +9,6 @@ import CustomInput from "../../components/UIElements/Input/CustomInput";
 import { reunionService } from '../../services/Reunion/reunionService';
 import { getInitials } from '../../services/Function/UserFonctionService';
 
-
 interface ReunionFormState {
     titre: string;
     description: string;
@@ -25,8 +24,7 @@ interface Participant {
     id?: string;
     email: string;
     name: string;
-    type: 'Interne' | 'Externe';
-    role: 'Obligatoire' | 'Facultatif';
+    role: string;
 }
 
 const notyf = new Notyf({ position: { x: "center", y: "top" } });
@@ -49,51 +47,7 @@ const CreateReunion: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [searchLoading, setSearchLoading] = useState(false);
 
-    const isInternalEmail = (email: string): boolean => {
-        return email.toLowerCase().endsWith('@ravinala-airports.aero');
-    };
-
-    const searchUsers = async (query: string): Promise<Participant[]> => {
-        if (query.length < 2) return [];
-        
-        setSearchLoading(true);
-        try {
-            const response = await axios.get(`/api/user/search?query=${query}`);
-            
-            if (!Array.isArray(response?.data)) {
-                console.error("Format de réponse inattendu:", response.data);
-                return [];
-            }
-
-            return response.data
-                .filter(user => user?.email && user?.name)
-                .map((user) => ({
-                    id: user.id,
-                    email: user.email,
-                    name: user.name,
-                    type: isInternalEmail(user.email) ? 'Interne' : 'Externe',
-                    role: isInternalEmail(user.email) ? 'Obligatoire' : 'Facultatif'
-                }));
-        } catch (err) {
-            console.error("Erreur API:", err);
-            return [];
-        } finally {
-            setSearchLoading(false);
-        }
-    };
-
-    const handleRemoveParticipant = (id: string | undefined, isObligatory: boolean) => {
-        if (isObligatory) {
-            setObligatoryParticipants(prev => prev.filter(p => p.id !== id));
-        } else {
-            setOptionalParticipants(prev => prev.filter(p => p.id !== id));
-        }
-    };
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
+    
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -104,7 +58,7 @@ const CreateReunion: React.FC = () => {
             const allParticipants = [...obligatoryParticipants, ...optionalParticipants];
             
             if (allParticipants.length === 0) {
-                notyf.error("Vous devez ajouter au moins un participant obligatoire.");
+                notyf.error("Vous devez ajouter au moins un participant.");
                 return;
             }
 
@@ -166,6 +120,47 @@ const CreateReunion: React.FC = () => {
         );
     };
 
+    const handleAddParticipant = async (query: string, isObligatory: boolean) => {
+        if (query.length < 2) return;
+        
+        const users = await searchUsers(query);
+        const filteredUsers = users.filter(u => 
+            isObligatory ? u.type === 'Interne' : u.type === 'Externe'
+        );
+
+        if (filteredUsers.length > 0) {
+            if (isObligatory) {
+                const conflict = filteredUsers.some(newUser => 
+                    optionalParticipants.some(existing => existing.email === newUser.email)
+                );
+                if (conflict) {
+                    notyf.error("Ce participant est déjà ajouté en facultatif.");
+                    return;
+                }
+                setObligatoryParticipants(prev => [
+                    ...prev,
+                    ...filteredUsers.filter(newUser => 
+                        !prev.some(existing => existing.email === newUser.email)
+                    )
+                ]);
+            } else {
+                const conflict = filteredUsers.some(newUser => 
+                    obligatoryParticipants.some(existing => existing.email === newUser.email)
+                );
+                if (conflict) {
+                    notyf.error("Ce participant est déjà ajouté en obligatoire.");
+                    return;
+                }
+                setOptionalParticipants(prev => [
+                    ...prev,
+                    ...filteredUsers.filter(newUser => 
+                        !prev.some(existing => existing.email === newUser.email)
+                    )
+                ]);
+            }
+        }
+    };
+
     return (
         <DefaultLayout>
             <div className="text-sm mx-2 p-4 md:mx-5">
@@ -193,45 +188,13 @@ const CreateReunion: React.FC = () => {
                             />
 
                             <div className="grid md:grid-cols-2 gap-4">
-                                <CustomInput 
-                                    type="date" 
-                                    name="dateDebut" 
-                                    label="Date de début" 
-                                    value={formData.dateDebut} 
-                                    onChange={handleInputChange} 
-                                    rounded="medium" 
-                                    required 
-                                />
-                                <CustomInput 
-                                    type="date" 
-                                    name="dateFin" 
-                                    label="Date de fin" 
-                                    value={formData.dateFin} 
-                                    onChange={handleInputChange} 
-                                    rounded="medium" 
-                                    required 
-                                />
+                                <CustomInput type="date" name="dateDebut" label="Date de début" value={formData.dateDebut} onChange={handleInputChange} rounded="medium" required />
+                                <CustomInput type="date" name="dateFin" label="Date de fin" value={formData.dateFin} onChange={handleInputChange} rounded="medium" required />
                             </div>
 
                             <div className="grid md:grid-cols-2 gap-4">
-                                <CustomInput 
-                                    type="time" 
-                                    name="heureDebut" 
-                                    label="Heure de début" 
-                                    value={formData.heureDebut} 
-                                    onChange={handleInputChange} 
-                                    rounded="medium" 
-                                    required 
-                                />
-                                <CustomInput 
-                                    type="time" 
-                                    name="heureFin" 
-                                    label="Heure de fin" 
-                                    value={formData.heureFin} 
-                                    onChange={handleInputChange} 
-                                    rounded="medium" 
-                                    required 
-                                />
+                                <CustomInput type="time" name="heureDebut" label="Heure de début" value={formData.heureDebut} onChange={handleInputChange} rounded="medium" required />
+                                <CustomInput type="time" name="heureFin" label="Heure de fin" value={formData.heureFin} onChange={handleInputChange} rounded="medium" required />
                             </div>
 
                             <CustomInput
@@ -275,21 +238,8 @@ const CreateReunion: React.FC = () => {
                                             onKeyDown={async (e) => {
                                                 if (e.key === 'Enter') {
                                                     e.preventDefault();
-                                                    const query = e.currentTarget.value.trim();
-                                                    if (query.length < 2) return;
-                                                    
-                                                    const users = await searchUsers(query);
-                                                    const internalUsers = users.filter(u => u.type === 'Interne');
-                                                    
-                                                    if (internalUsers.length > 0) {
-                                                        setObligatoryParticipants(prev => [
-                                                            ...prev,
-                                                            ...internalUsers.filter(newUser => 
-                                                                !prev.some(existing => existing.email === newUser.email)
-                                                            )
-                                                        ]);
-                                                        e.currentTarget.value = '';
-                                                    }
+                                                    await handleAddParticipant(e.currentTarget.value.trim(), true);
+                                                    e.currentTarget.value = '';
                                                 }
                                             }}
                                         />
@@ -297,11 +247,7 @@ const CreateReunion: React.FC = () => {
                                     </div>
                                     <div className="flex gap-4 mt-2 flex-wrap">
                                         {obligatoryParticipants.map(participant => (
-                                            <ParticipantItem 
-                                                key={participant.id} 
-                                                participant={participant} 
-                                                isObligatory={true} 
-                                            />
+                                            <ParticipantItem key={participant.id} participant={participant} isObligatory={true} />
                                         ))}
                                     </div>
                                 </div>
@@ -321,21 +267,8 @@ const CreateReunion: React.FC = () => {
                                             onKeyDown={async (e) => {
                                                 if (e.key === 'Enter') {
                                                     e.preventDefault();
-                                                    const query = e.currentTarget.value.trim();
-                                                    if (query.length < 2) return;
-                                                    
-                                                    const users = await searchUsers(query);
-                                                    const externalUsers = users.filter(u => u.type === 'Externe');
-                                                    
-                                                    if (externalUsers.length > 0) {
-                                                        setOptionalParticipants(prev => [
-                                                            ...prev,
-                                                            ...externalUsers.filter(newUser => 
-                                                                !prev.some(existing => existing.email === newUser.email)
-                                                            )
-                                                        ]);
-                                                        e.currentTarget.value = '';
-                                                    }
+                                                    await handleAddParticipant(e.currentTarget.value.trim(), false);
+                                                    e.currentTarget.value = '';
                                                 }
                                             }}
                                         />
@@ -343,11 +276,7 @@ const CreateReunion: React.FC = () => {
                                     </div>
                                     <div className="flex gap-4 mt-2 flex-wrap">
                                         {optionalParticipants.map(participant => (
-                                            <ParticipantItem 
-                                                key={participant.id} 
-                                                participant={participant} 
-                                                isObligatory={false} 
-                                            />
+                                            <ParticipantItem key={participant.id} participant={participant} isObligatory={false} />
                                         ))}
                                     </div>
                                 </div>
@@ -380,9 +309,9 @@ const CreateReunion: React.FC = () => {
                                 </button>
                                 <button 
                                     type="submit" 
-                                    disabled={isSubmitting || obligatoryParticipants.length === 0}
+                                    disabled={isSubmitting}
                                     className={`md:w-fit gap-2 w-full cursor-pointer py-2 px-5 text-center font-medium text-white hover:bg-opacity-90 lg:px-8 border rounded-lg ${
-                                        isSubmitting || obligatoryParticipants.length === 0
+                                        isSubmitting
                                             ? "border-slate-400 bg-slate-300 text-slate-600 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400 cursor-not-allowed"
                                             : "border-primaryGreen bg-primaryGreen dark:border-darkgreen dark:bg-darkgreen"
                                     }`}
