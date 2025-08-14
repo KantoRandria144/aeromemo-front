@@ -69,7 +69,7 @@ const CreateReunion = () => {
             <div className="text-sm mx-2 p-4 md:mx-5">
                 <Breadcrumb
                     paths={[
-                        { name: "Réunion", to: "/reunions" },
+                        { name: "Réunion", to: "/aeromemo/planification" },
                         { name: "Créer Réunion" },
                     ]}
                 />

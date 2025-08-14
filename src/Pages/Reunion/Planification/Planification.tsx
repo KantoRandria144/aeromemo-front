@@ -60,35 +60,33 @@ const Planification = ({
         <DefaultLayout>
             <div className="mx-2 py-4 md:mx-10">
                 <>
-                    <div className="flex flex-col md:flex-row">
-                        <Breadcrumb
-                            paths={[{ name: "Liste des Projets", to: "/gmp/project/list" }]}
-                        />
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+    <Breadcrumb
+        paths={[{ name: "Liste des Projets", to: "/aeromemo/planification" }]}
+    />
 
-                        <div className={`w-full mb-2 justify-end items-center`}>
-                            <button
-                                onClick={() => navigate("/gmp/project/add")}
-                                className={`md:w-fit gap-2 flex justify-center w-full cursor-pointer mt-2 py-2 lg:px-3 xl:px-2 text-center font-medium text-sm text-white hover:bg-opacity-90 border border-primaryGreen bg-primaryGreen rounded-lg dark:border-darkgreen dark:bg-darkgreen dark:hover:bg-opacity-90 md:ease-in md:duration-300 md:transform`}
-                            >
-                                <svg
-                                    width="15"
-                                    height="15"
-                                    viewBox="0 0 20 20"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        d="M6 12H18M12 6V18"
-                                        stroke="#fff"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    ></path>
-                                </svg>
-                                Ajouter un nouveau Projet
-                            </button>
-                        </div>
-                    </div>
+    <button
+        onClick={() => navigate("/aeromemo/créer-réunion")}
+        className="md:w-fit mb-2 gap-2 flex justify-center w-full md:w-auto cursor-pointer mt-2 py-2 lg:px-3 xl:px-2 text-center font-medium text-sm text-white hover:bg-opacity-90 border border-primaryGreen bg-primaryGreen rounded-lg dark:border-darkgreen dark:bg-darkgreen dark:hover:bg-opacity-90 md:ease-in md:duration-300 md:transform"
+    >
+        <svg
+            width="15"
+            height="15"
+            viewBox="0 0 20 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+        >
+            <path
+                d="M6 12H18M12 6V18"
+                stroke="#fff"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            ></path>
+        </svg>
+        Ajouter un nouveau Projet
+    </button>
+</div>
 
                     <div className="bg-white min-h-[80vh] pt-2 shadow-1 rounded-lg border border-zinc-200 dark:border-strokedark dark:bg-boxdark">
                         <div className="flex gap-3 m-5 flex-wrap justify-between items-center">
@@ -261,31 +259,59 @@ const Planification = ({
                                                 </svg>
                                             </button>
                                         </th>
-                                        <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
-                                            <div className="flex items-center gap-1">
-                                                <span>Date</span>
-                                            </div>
-                                        </th>
-                                        <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
-                                            <div className="flex items-center gap-1">
-                                                <span>Titre</span>
-                                            </div>
-                                        </th>
-                                        <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
-                                            <div className="flex items-center gap-1">
-                                                <span>Organisateur</span>
-                                            </div>
-                                        </th>
-                                        <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
-                                            <div className="flex items-center gap-1">
-                                                <span>Participants</span>
-                                            </div>
-                                        </th>
-                                        <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
-                                            <div className="flex items-center gap-1">
-                                                <span>Statuts</span>
-                                            </div>
-                                        </th>
+                                        {activeTab === "all" ? (
+                                            <>
+                                                <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Date</span>
+                                                    </div>
+                                                </th>
+                                                <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Titre</span>
+                                                    </div>
+                                                </th>
+                                                <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Organisateur</span>
+                                                    </div>
+                                                </th>
+                                                <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Participants</span>
+                                                    </div>
+                                                </th>
+                                                <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Statuts</span>
+                                                    </div>
+                                                </th>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Date</span>
+                                                    </div>
+                                                </th>
+                                                <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Titre</span>
+                                                    </div>
+                                                </th>
+                                                <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Participant</span>
+                                                    </div>
+                                                </th>
+                                               
+                                                <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Statut</span>
+                                                    </div>
+                                                </th>
+                                            </>
+                                        )}
                                         <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
                                             <div className="flex items-center gap-1">
                                                 <span>Actions</span>
