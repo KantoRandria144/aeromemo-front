@@ -52,3 +52,9 @@ export interface CreateReunionResponse {
     message: string;
     webLink?: string;
 }
+
+export interface IUserReunion {
+    user?: any;
+    userid: string | undefined;
+    role?: string;
+}

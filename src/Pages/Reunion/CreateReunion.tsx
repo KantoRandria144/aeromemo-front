@@ -2,165 +2,68 @@ import React, { useState } from 'react';
 import { PuffLoader } from "react-spinners";
 import { Notyf } from "notyf";
 import "notyf/notyf.min.css";
-import axios from 'axios';
 import Breadcrumb from "../../components/BreadCrumbs/BreadCrumb";
 import DefaultLayout from "../../components/layout/DefaultLayout";
 import CustomInput from "../../components/UIElements/Input/CustomInput";
-import { reunionService } from '../../services/Reunion/reunionService';
 import { getInitials } from '../../services/Function/UserFonctionService';
-
-interface ReunionFormState {
-    titre: string;
-    description: string;
-    dateDebut: string;
-    dateFin: string;
-    heureDebut: string;
-    heureFin: string;
-    etat: number;
-    emplacement: string;
-}
-
-interface Participant {
-    id?: string;
-    email: string;
-    name: string;
-    role: string;
-}
+import { IUserReunion } from '../../types/reunion';
+import { IDecodedToken } from '../../types/user';
 
 const notyf = new Notyf({ position: { x: "center", y: "top" } });
 
-const CreateReunion: React.FC = () => {
-    const [formData, setFormData] = useState<ReunionFormState>({
-        titre: '',
-        description: 'Réunion planifiée via AeroMemo.',
-        dateDebut: '',
-        dateFin: '',
-        heureDebut: '',
-        heureFin: '',
-        etat: 1,
-        emplacement: ''
-    });
+const CreateReunion = () => {
+   const [searchUserInput, setSearchUserInput] = useState<string>("");
+   const [usersList, setUsersList] = useState<Array<any>>([]);
+   const [filteredUsers, setFilteredUsers] = useState<Array<any>>([]);
+   const [isDropdownUserOpen, setIsDropdownUserOpen] = useState<boolean>(false);
+   const [assignedPerson, setAssignedPerson] = useState<Array<IUserReunion>>([]);
+   const [decodedToken, setDecodedToken] = useState<IDecodedToken>();
 
-    const [obligatoryParticipants, setObligatoryParticipants] = useState<Participant[]>([]);
-    const [optionalParticipants, setOptionalParticipants] = useState<Participant[]>([]);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [searchLoading, setSearchLoading] = useState(false);
-
-    
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-        setError(null);
-
-        try {
-            const allParticipants = [...obligatoryParticipants, ...optionalParticipants];
-            
-            if (allParticipants.length === 0) {
-                notyf.error("Vous devez ajouter au moins un participant.");
-                return;
-            }
-
-            const participantDtos = allParticipants.map(p => ({
-                id: '',
-                type: p.type,
-                role: p.role,
-                state: (p.type === 'Interne' ? 'Confirmé' : 'En attente') as 'Confirmé' | 'En attente' | 'Refusé',
-                userid: p.id || p.email.split('@')[0],
-                email: p.email,
-                reunionid: ''
-            }));
-
-            await reunionService.create({
-                ...formData,
-                participants: participantDtos
-            });
-
-            notyf.success('Réunion créée avec succès !');
-            setFormData({
-                titre: '',
-                description: 'Réunion planifiée via AeroMemo.',
-                dateDebut: '',
-                dateFin: '',
-                heureDebut: '',
-                heureFin: '',
-                etat: 1,
-                emplacement: ''
-            });
-            setObligatoryParticipants([]);
-            setOptionalParticipants([]);
-        } catch (err: any) {
-            setError(err.response?.data?.message || "Erreur lors de la création");
-            notyf.error(err.response?.data?.message || "Erreur lors de la création");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const ParticipantItem = ({ participant, isObligatory }: { participant: Participant, isObligatory: boolean }) => {
-        const initials = getInitials(participant.name);
-        const bgColor = participant.type === 'Interne' ? 'bg-blue-100' : 'bg-yellow-100';
-        const textColor = participant.type === 'Interne' ? 'text-blue-800' : 'text-yellow-800';
-
-        return (
-            <div
-                key={participant.id}
-                className="relative group -ml-2 first:ml-0 hover:z-50"
-                onClick={() => handleRemoveParticipant(participant.id, isObligatory)}
-            >
-                <div className={`cursor-pointer border relative ${bgColor} p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full`}>
-                    <span className={textColor}>{initials}</span>
-                </div>
-                <div className="absolute whitespace-nowrap text-xs hidden group-hover:block bg-white text-black p-2 border border-gray-200 shadow-md rounded-md z-10 top-[-35px] left-1/2 transform -translate-x-1/2">
-                    <p>{participant.name}</p>
-                    <p className="text-xs">{participant.email}</p>
-                </div>
-            </div>
+   const handleUserSearch = (searchTerm: string) => {
+    if (searchTerm === "") {
+        setFilteredUsers(usersList);
+        setIsDropdownUserOpen(false);
+    } else {
+        const filtered = usersList.filter(user => 
+            user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email.tolowerCase().includes(searchTerm.toLowerCase())
         );
-    };
+        setFilteredUsers(filtered);
+        setIsDropdownUserOpen(true);
+    }
 
-    const handleAddParticipant = async (query: string, isObligatory: boolean) => {
-        if (query.length < 2) return;
-        
-        const users = await searchUsers(query);
-        const filteredUsers = users.filter(u => 
-            isObligatory ? u.type === 'Interne' : u.type === 'Externe'
-        );
+   };
 
-        if (filteredUsers.length > 0) {
-            if (isObligatory) {
-                const conflict = filteredUsers.some(newUser => 
-                    optionalParticipants.some(existing => existing.email === newUser.email)
-                );
-                if (conflict) {
-                    notyf.error("Ce participant est déjà ajouté en facultatif.");
-                    return;
-                }
-                setObligatoryParticipants(prev => [
-                    ...prev,
-                    ...filteredUsers.filter(newUser => 
-                        !prev.some(existing => existing.email === newUser.email)
-                    )
-                ]);
-            } else {
-                const conflict = filteredUsers.some(newUser => 
-                    obligatoryParticipants.some(existing => existing.email === newUser.email)
-                );
-                if (conflict) {
-                    notyf.error("Ce participant est déjà ajouté en obligatoire.");
-                    return;
-                }
-                setOptionalParticipants(prev => [
-                    ...prev,
-                    ...filteredUsers.filter(newUser => 
-                        !prev.some(existing => existing.email === newUser.email)
-                    )
-                ]);
-            }
-        }
-    };
+   const handleAddUser = (user: {
+    id: string;
+    name: string;
+    email: string;
+   }) => {
+    if (!assignedPerson.some(u => u.userid === user.id)) {
+        const formatUser = {
+            userid: user.id,
+            role: "collaborator",
+            user: {
+                name: user.name,
+                email: user.email
+            },
+        };
+        setAssignedPerson(prev => [...prev, formatUser]);
+        setSearchUserInput("");
+        setIsDropdownUserOpen(false);
+    } else {
+        notyf.error("Cet utilisateur participe déjà");
+    }
+   };
 
+   const handleRemoveUser = (userId: string) => {
+    if (userId === decodedToken?.jti) {
+        setAssignedPerson(prev => prev.filter(user => user.userid !== userId));
+
+        return;
+    }
+    setAssignedPerson(prev => prev.filter(user => user.userid !== userId));
+   };
     return (
         <DefaultLayout>
             <div className="text-sm mx-2 p-4 md:mx-5">
@@ -175,34 +78,60 @@ const CreateReunion: React.FC = () => {
                         Créer une nouvelle réunion
                     </div>
                     <div className="pt-2 w-full px-2 md:px-20 lg:px-30 xl:px-50">
-                        <form onSubmit={handleSubmit} className="space-y-4 transition-all duration-1000 ease-in-out">
+                        <form className="space-y-4 transition-all duration-1000 ease-in-out">
                             <CustomInput
                                 type="text"
                                 name="titre"
                                 label="Titre"
-                                value={formData.titre}
-                                onChange={handleInputChange}
+                                value={""}
                                 placeholder="Titre de la réunion"
                                 rounded="medium"
                                 required
                             />
 
                             <div className="grid md:grid-cols-2 gap-4">
-                                <CustomInput type="date" name="dateDebut" label="Date de début" value={formData.dateDebut} onChange={handleInputChange} rounded="medium" required />
-                                <CustomInput type="date" name="dateFin" label="Date de fin" value={formData.dateFin} onChange={handleInputChange} rounded="medium" required />
+                                <CustomInput 
+                                    type="date" 
+                                    name="dateDebut" 
+                                    label="Date de début" 
+                                    value={""}
+                                    rounded="medium" 
+                                    required 
+                                />
+                                <CustomInput 
+                                    type="date" 
+                                    name="dateFin" 
+                                    label="Date de fin" 
+                                    value={""}
+                                    rounded="medium" 
+                                    required 
+                                />
                             </div>
 
                             <div className="grid md:grid-cols-2 gap-4">
-                                <CustomInput type="time" name="heureDebut" label="Heure de début" value={formData.heureDebut} onChange={handleInputChange} rounded="medium" required />
-                                <CustomInput type="time" name="heureFin" label="Heure de fin" value={formData.heureFin} onChange={handleInputChange} rounded="medium" required />
+                                <CustomInput 
+                                    type="time" 
+                                    name="heureDebut" 
+                                    label="Heure de début" 
+                                    value={""}
+                                    rounded="medium" 
+                                    required 
+                                />
+                                <CustomInput 
+                                    type="time" 
+                                    name="heureFin" 
+                                    label="Heure de fin" 
+                                    value={""} 
+                                    rounded="medium" 
+                                    required 
+                                />
                             </div>
 
                             <CustomInput
                                 type="text"
                                 name="emplacement"
                                 label="Emplacement"
-                                value={formData.emplacement}
-                                onChange={handleInputChange}
+                                value={""}
                                 placeholder="Salle de réunion"
                                 rounded="medium"
                                 required
@@ -216,8 +145,7 @@ const CreateReunion: React.FC = () => {
                                     id="description"
                                     name="description"
                                     rows={4}
-                                    value={formData.description}
-                                    onChange={handleInputChange}
+                                    value={""}
                                     className="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
                                     placeholder="Description de la réunion..."
                                     required
@@ -226,28 +154,61 @@ const CreateReunion: React.FC = () => {
 
                             {/* Participants Obligatoires */}
                             <div>
-                                <label className="mb-1 block font-semibold text-sm text-black dark:text-white">
-                                    Participants Obligatoires
-                                </label>
+                                
                                 <div className="hide-scrollbar">
-                                    <div className="flex items-center gap-2">
-                                        <input
+                                    <div className="">
+                                    
+                                        <CustomInput 
                                             type="text"
-                                            placeholder="Rechercher par nom ou email..."
-                                            className="flex-1 rounded border-[1.5px] border-stroke bg-transparent py-2 px-3 font-medium outline-none transition focus:border-primary active:border-primary"
-                                            onKeyDown={async (e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    await handleAddParticipant(e.currentTarget.value.trim(), true);
-                                                    e.currentTarget.value = '';
-                                                }
+                                            label="Participant obligatoires"
+                                            rounded="medium"
+                                            className='text-sm'
+                                            value={searchUserInput}
+                                            onChange={(e) => {
+                                                setSearchUserInput(e.target.value);
+                                                handleUserSearch(e.target.value);
                                             }}
+                                            onFocus={() => setIsDropdownUserOpen}
+                                            placeholder='Rechercher un utilisateur'
+
                                         />
-                                        {searchLoading && <PuffLoader size={20} />}
+                                        {isDropdownUserOpen && filteredUsers.length > 0 && (
+                                            <div className="absolute z-10 mt-1 w-full bg-white dark:bg-boxdark border dark:border-formStrokedark rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                                {filteredUsers.map((user) => (
+                                                    <div 
+                                                        key={user.id}
+                                                        className="flew items-center p-2 hover:bg-gray-100 dark:hover:bg-boxdark2 cursor-pointer"
+                                                        onClick={() => handleAddUser(user)} 
+                                                    >
+                                                        <div className="w-8 h-8 rounded-full bg-secondaryGreen flex items-center justify-center text-white mr-2">
+                                                            {getInitials(user.name)}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium">{user.name}</p>
+                                                            <p className="text-xs text-gray-500">{user.email}</p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="flex gap-4 mt-2 flex-wrap">
-                                        {obligatoryParticipants.map(participant => (
-                                            <ParticipantItem key={participant.id} participant={participant} isObligatory={true} />
+                                    <div className="flex flex-wrap gap-2">
+                                        {assignedPerson.map((user) => (
+                                            <div 
+                                                key={user.userid}
+                                                className="flex items-center bg-gray-100 dark:bg-boxdark rounded-full px-3 py-1"
+                                            >
+                                                <div className="w-6 h-6 rounded-full bg-secondaryGreen flex items-center justify-center text-white mr-2 text-xs"> 
+                                                    {getInitials(user.user?.name)}
+                                                </div>
+                                                <span className="text-sm mr-2">{user.user?.name}</span>
+                                                <button
+                                                    onClick={() => handleRemoveUser(user.userid!)}
+                                                    className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                                                >
+                                                    x
+                                                </button>
+                                            </div>
                                         ))}
                                     </div>
                                 </div>
@@ -255,50 +216,36 @@ const CreateReunion: React.FC = () => {
 
                             {/* Participants Facultatifs */}
                             <div>
-                                <label className="mb-1 block font-semibold text-sm text-black dark:text-white">
-                                    Participants Facultatifs
-                                </label>
+                               
                                 <div className="hide-scrollbar">
-                                    <div className="flex items-center gap-2">
-                                        <input
+                                    <div className="">
+                                       <CustomInput 
                                             type="text"
-                                            placeholder="Rechercher par nom ou email..."
-                                            className="flex-1 rounded border-[1.5px] border-stroke bg-transparent py-2 px-3 font-medium outline-none transition focus:border-primary active:border-primary"
-                                            onKeyDown={async (e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    await handleAddParticipant(e.currentTarget.value.trim(), false);
-                                                    e.currentTarget.value = '';
-                                                }
+                                            label="Participant facultatifs"
+                                            rounded="medium"
+                                            className='text-sm'
+                                            value={searchUserInput}
+                                            onChange={(e) => {
+                                                setSearchUserInput(e.target.value);
+                                                handleUserSearch(e.target.value);
                                             }}
+                                            onFocus={() => setIsDropdownUserOpen}
+                                            placeholder='Rechercher un utilisateur'
+
                                         />
-                                        {searchLoading && <PuffLoader size={20} />}
+                                        
                                     </div>
                                     <div className="flex gap-4 mt-2 flex-wrap">
-                                        {optionalParticipants.map(participant => (
-                                            <ParticipantItem key={participant.id} participant={participant} isObligatory={false} />
-                                        ))}
+                                        
                                     </div>
                                 </div>
                             </div>
 
                             <div className="text-sm text-gray-500 flex items-center">
-                                <span className="flex items-center mr-3">
-                                    <span className="inline-block w-3 h-3 mr-1 bg-blue-600 rounded-full"></span>
-                                    Interne (Obligatoire)
-                                </span>
-                                <span className="flex items-center">
-                                    <span className="inline-block w-3 h-3 mr-1 bg-yellow-500 rounded-full"></span>
-                                    Externe (Facultatif)
-                                </span>
+                                
                             </div>
 
-                            {error && (
-                                <div className="text-red-500 text-center p-2 bg-red-100 rounded-md">
-                                    {error}
-                                </div>
-                            )}
-
+                            
                             <div className="flex justify-end gap-3 pt-4">
                                 <button 
                                     type="button" 
@@ -309,18 +256,13 @@ const CreateReunion: React.FC = () => {
                                 </button>
                                 <button 
                                     type="submit" 
-                                    disabled={isSubmitting}
-                                    className={`md:w-fit gap-2 w-full cursor-pointer py-2 px-5 text-center font-medium text-white hover:bg-opacity-90 lg:px-8 border rounded-lg ${
-                                        isSubmitting
-                                            ? "border-slate-400 bg-slate-300 text-slate-600 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400 cursor-not-allowed"
-                                            : "border-primaryGreen bg-primaryGreen dark:border-darkgreen dark:bg-darkgreen"
-                                    }`}
+                                    
+                                    className={`md:w-fit gap-2 w-full cursor-pointer py-2 px-5 text-center font-medium text-white hover:bg-opacity-90 lg:px-8 border rounded-lg `}
                                 >
-                                    {isSubmitting ? (
-                                        <span className="flex items-center justify-center gap-2">
-                                            <PuffLoader size={20} color="#fff" /> Création en cours...
-                                        </span>
-                                    ) : 'Créer la réunion'}
+                                    
+                                    
+                                       
+                                     Créer la réunion
                                 </button>
                             </div>
                         </form>
