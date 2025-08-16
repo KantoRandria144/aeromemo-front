@@ -1,27 +1,17 @@
-// src/pages/reunion/CreateReunion.tsx
 import React, { useEffect, useRef, useState } from "react";
 import Breadcrumb from "../../components/BreadCrumbs/BreadCrumb";
 import DefaultLayout from "../../components/layout/DefaultLayout";
 import CustomInput from "../../components/UIElements/Input/CustomInput";
 import { getAllUsers } from "../../services/User/UserServices";
+import { Notyf } from "notyf";
+import "notyf/notyf.min.css";
+import { saveReunion } from "../../services/Reunion/ReunionServices";
 
-// ---- Salles disponibles (liste déroulante) ----
-const ROOMS = [
-  "Salle R+1",
-  "Salle R+3",
-  "Salle R+4",
-  "Salle DSI",
-  "Salle CDOU",
-  "Salle mezzanine",
-] as const;
 
-// ---------- Types & helpers ----------
-type SimpleUser = {
-  id: string;
-  name: string;
-  email: string;
-  department?: string; // ex: "DOP"
-};
+const ROOMS = ["Salle R+1","Salle R+3","Salle R+4","Salle DSI","Salle CDOU","Salle mezzanine"] as const;
+
+
+type SimpleUser = { id: string; name: string; email: string; department?: string; };
 
 const initialsOf = (fullName?: string) => {
   if (!fullName) return "";
@@ -31,16 +21,23 @@ const initialsOf = (fullName?: string) => {
   return (first + last).toUpperCase();
 };
 
+const ensureSeconds = (hhmm: string | null) => {
+  const v = (hhmm || "").trim();
+  if (!v) return "";
+  // si "09:00" -> "09:00:00" ; si déjà "09:00:30" on garde
+  return v.length === 5 ? `${v}:00` : v;
+};
+
 // ---------- Autocomplete contrôlé (réutilisable) ----------
 type ParticipantsAutocompleteProps = {
   label: string;
   requiredLabel?: boolean;
   placeholder?: string;
   startsWithOnly?: boolean;
-  selected: SimpleUser[];                    // valeur contrôlée
-  onChange: (next: SimpleUser[]) => void;    // setter contrôlé
-  excludeIds?: string[];                     // IDs à exclure des suggestions
-  hiddenFieldName: string;                   // champ caché (JSON des IDs)
+  selected: SimpleUser[];
+  onChange: (next: SimpleUser[]) => void;
+  excludeIds?: string[];
+  hiddenFieldName: string;
 };
 
 const ParticipantsAutocomplete: React.FC<ParticipantsAutocompleteProps> = ({
@@ -59,7 +56,6 @@ const ParticipantsAutocomplete: React.FC<ParticipantsAutocompleteProps> = ({
   const boxRef = useRef<HTMLDivElement | null>(null);
   const debounceRef = useRef<number | null>(null);
 
-  // fetch + debounce
   useEffect(() => {
     const q = query.trim();
     if (!q) {
@@ -72,27 +68,17 @@ const ParticipantsAutocomplete: React.FC<ParticipantsAutocompleteProps> = ({
       try {
         const data = await getAllUsers(q);
         let list: SimpleUser[] = Array.isArray(data) ? data : [];
-
         const v = q.toLowerCase();
-        list =
-          startsWithOnly
-            ? list.filter(
-                (u) =>
-                  (u.name || "").toLowerCase().startsWith(v) ||
-                  (u.email || "").toLowerCase().startsWith(v)
-              )
-            : list.filter(
-                (u) =>
-                  (u.name || "").toLowerCase().includes(v) ||
-                  (u.email || "").toLowerCase().includes(v)
-              );
-
-        // Exclure déjà sélectionnés ici + ceux passés par props
-        const toExclude = new Set<string>([
-          ...selected.map((u) => u.id),
-          ...excludeIds,
-        ]);
-        list = list.filter((u) => !toExclude.has(u.id));
+        list = (startsWithOnly
+          ? list.filter((u) =>
+              (u.name || "").toLowerCase().startsWith(v) ||
+              (u.email || "").toLowerCase().startsWith(v)
+            )
+          : list.filter((u) =>
+              (u.name || "").toLowerCase().includes(v) ||
+              (u.email || "").toLowerCase().includes(v)
+            )
+        ).filter((u) => !selected.some((s) => s.id === u.id) && !excludeIds.includes(u.id));
 
         setSuggestions(list);
         setOpen(list.length > 0);
@@ -102,10 +88,11 @@ const ParticipantsAutocomplete: React.FC<ParticipantsAutocompleteProps> = ({
       }
     }, 300);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, startsWithOnly, excludeIds, selected]); // si selected/excludeIds changent → rafraîchir
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    };
+  }, [query, startsWithOnly, excludeIds, selected]);
 
-  // fermer au clic dehors
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (!boxRef.current) return;
@@ -123,9 +110,7 @@ const ParticipantsAutocomplete: React.FC<ParticipantsAutocompleteProps> = ({
     setOpen(false);
   };
 
-  const removeOne = (id: string) => {
-    onChange(selected.filter((p) => p.id !== id));
-  };
+  const removeOne = (id: string) => onChange(selected.filter((p) => p.id !== id));
 
   return (
     <div ref={boxRef}>
@@ -166,13 +151,9 @@ const ParticipantsAutocomplete: React.FC<ParticipantsAutocompleteProps> = ({
         )}
       </div>
 
-      {/* pills */}
       <div className="flex flex-wrap gap-2 mt-2">
         {selected.map((u) => (
-          <div
-            key={u.id}
-            className="flex items-center bg-gray-100 dark:bg-boxdark rounded-full px-3 py-1"
-          >
+          <div key={u.id} className="flex items-center bg-gray-100 dark:bg-boxdark rounded-full px-3 py-1">
             <div className="w-6 h-6 rounded-full bg-emerald-700 text-white flex items-center justify-center text-xs mr-2">
               {initialsOf(u.name)}
             </div>
@@ -192,24 +173,69 @@ const ParticipantsAutocomplete: React.FC<ParticipantsAutocompleteProps> = ({
       </div>
 
       {/* IDs en JSON à soumettre avec le formulaire */}
-      <input
-        type="hidden"
-        name={hiddenFieldName}
-        value={JSON.stringify(selected.map((u) => u.id))}
-      />
+      <input type="hidden" name={hiddenFieldName} value={JSON.stringify(selected.map((u) => u.id))} />
     </div>
   );
 };
 
 // ---------- Page ----------
+const notyf = new Notyf({ position: { x: "center", y: "top" } });
+
 const CreateReunion = () => {
-  // état centralisé pour assurer l'exclusion mutuelle
+  // mutual exclusion state
   const [requiredParticipants, setRequiredParticipants] = useState<SimpleUser[]>([]);
   const [optionalParticipants, setOptionalParticipants] = useState<SimpleUser[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
-  // IDs pour exclusion croisée
   const requiredIds = requiredParticipants.map((u) => u.id);
   const optionalIds = optionalParticipants.map((u) => u.id);
+
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (submitting) return;
+
+    const form = new FormData(e.currentTarget);
+
+    const payload = {
+      titre: String(form.get("titre") || "").trim(),
+      description: String(form.get("description") || "").trim(),
+      dateDebut: String(form.get("dateDebut") || "").trim(), // "YYYY-MM-DD"
+      dateFin: String(form.get("dateFin") || "").trim(),     // "YYYY-MM-DD"
+      heureDebut: ensureSeconds(String(form.get("heureDebut"))), // "HH:mm:ss"
+      heureFin: ensureSeconds(String(form.get("heureFin"))),     // "HH:mm:ss"
+      emplacement: String(form.get("emplacement") || "").trim(),
+      etat: 1,
+      participantsObligatoires: (() => {
+        try { return JSON.parse(String(form.get("participantsObligatoiresIds") || "[]")); }
+        catch { return []; }
+      })(),
+      participantsFacultatifs: (() => {
+        try { return JSON.parse(String(form.get("participantsFacultatifsIds") || "[]")); }
+        catch { return []; }
+      })(),
+    };
+
+    // petite validation rapide
+    if (!payload.titre || !payload.description || !payload.dateDebut || !payload.heureDebut || !payload.heureFin || !payload.emplacement) {
+      notyf.error("Merci de remplir tous les champs obligatoires.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await saveReunion(payload as any);
+      notyf.success("Réunion créée avec succès !");
+      // reset visuel
+      (e.currentTarget as HTMLFormElement).reset();
+      setRequiredParticipants([]);
+      setOptionalParticipants([]);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || "Une erreur est survenue lors de l’enregistrement.";
+      notyf.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <DefaultLayout>
@@ -227,61 +253,22 @@ const CreateReunion = () => {
           </div>
 
           <div className="pt-2 w-full px-2 md:px-20 lg:px-30 xl:px-50">
-            <form className="space-y-4">
-              <CustomInput
-                type="text"
-                name="titre"
-                label="Titre"
-                defaultValue=""
-                placeholder="Titre de la réunion"
-                rounded="medium"
-                required
-              />
+            <form className="space-y-4" onSubmit={onSubmit}>
+              <CustomInput type="text" name="titre" label="Titre" defaultValue="" placeholder="Titre de la réunion" rounded="medium" required />
 
               <div className="grid md:grid-cols-2 gap-4">
-                <CustomInput
-                  type="date"
-                  name="dateDebut"
-                  label="Date de début"
-                  defaultValue=""
-                  rounded="medium"
-                  required
-                />
-                <CustomInput
-                  type="date"
-                  name="dateFin"
-                  label="Date de fin"
-                  defaultValue=""
-                  rounded="medium"
-                  required
-                />
+                <CustomInput type="date" name="dateDebut" label="Date de début" defaultValue="" rounded="medium" required />
+                <CustomInput type="date" name="dateFin" label="Date de fin" defaultValue="" rounded="medium" required />
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
-                <CustomInput
-                  type="time"
-                  name="heureDebut"
-                  label="Heure de début"
-                  defaultValue=""
-                  rounded="medium"
-                  required
-                />
-                <CustomInput
-                  type="time"
-                  name="heureFin"
-                  label="Heure de fin"
-                  defaultValue=""
-                  rounded="medium"
-                  required
-                />
+                <CustomInput type="time" name="heureDebut" label="Heure de début" defaultValue="" rounded="medium" required />
+                <CustomInput type="time" name="heureFin" label="Heure de fin" defaultValue="" rounded="medium" required />
               </div>
 
               {/* Emplacement: liste déroulante */}
               <div>
-                <label
-                  htmlFor="emplacement"
-                  className="mb-1 block font-semibold text-sm text-black dark:text-white"
-                >
+                <label htmlFor="emplacement" className="mb-1 block font-semibold text-sm text-black dark:text-white">
                   Emplacement
                 </label>
                 <select
@@ -300,10 +287,7 @@ const CreateReunion = () => {
 
               {/* Description */}
               <div>
-                <label
-                  htmlFor="description"
-                  className="mb-1 block font-semibold text-sm text-black dark:text-white"
-                >
+                <label htmlFor="description" className="mb-1 block font-semibold text-sm text-black dark:text-white">
                   Description
                 </label>
                 <textarea
@@ -324,14 +308,11 @@ const CreateReunion = () => {
                 placeholder="Tapez pour rechercher (ex : a...)"
                 selected={requiredParticipants}
                 onChange={(next) => {
-                  // retirer d'optional si présent (sécurité supplémentaire)
-                  const nextOptional = optionalParticipants.filter(
-                    (u) => !next.some((r) => r.id === u.id)
-                  );
+                  const nextOptional = optionalParticipants.filter((u) => !next.some((r) => r.id === u.id));
                   setOptionalParticipants(nextOptional);
                   setRequiredParticipants(next);
                 }}
-                excludeIds={optionalIds} // exclure ceux déjà facultatifs
+                excludeIds={optionalIds}
                 hiddenFieldName="participantsObligatoiresIds"
               />
 
@@ -341,14 +322,11 @@ const CreateReunion = () => {
                 placeholder="Tapez pour rechercher (ex : a...)"
                 selected={optionalParticipants}
                 onChange={(next) => {
-                  // retirer de required si présent (sécurité supplémentaire)
-                  const nextRequired = requiredParticipants.filter(
-                    (u) => !next.some((o) => o.id === u.id)
-                  );
+                  const nextRequired = requiredParticipants.filter((u) => !next.some((o) => o.id === u.id));
                   setRequiredParticipants(nextRequired);
                   setOptionalParticipants(next);
                 }}
-                excludeIds={requiredIds} // exclure ceux déjà obligatoires
+                excludeIds={requiredIds}
                 hiddenFieldName="participantsFacultatifsIds"
               />
 
@@ -358,15 +336,17 @@ const CreateReunion = () => {
                   type="button"
                   className="md:w-fit gap-2 w-full cursor-pointer py-2 px-5 text-center font-semibold text-zinc-700 dark:text-whiten hover:bg-zinc-50 lg:px-8 border border-zinc-300 rounded-lg dark:bg-transparent dark:hover:bg-boxdark2"
                   onClick={() => window.history.back()}
+                  disabled={submitting}
                 >
                   Annuler
                 </button>
 
                 <button
                   type="submit"
-                  className="md:w-fit gap-2 w-full cursor-pointer py-2 px-5 text-center font-semibold text-white hover:bg-opacity-90 lg:px-8 xl:px-5 border border-primaryGreen bg-primaryGreen rounded-lg dark:border-darkgreen dark:bg-darkgreen dark:hover:bg-opacity-90"
+                  disabled={submitting}
+                  className="md:w-fit gap-2 w-full cursor-pointer py-2 px-5 text-center font-semibold text-white hover:bg-opacity-90 lg:px-8 xl:px-5 border border-primaryGreen bg-primaryGreen rounded-lg dark:border-darkgreen dark:bg-darkgreen dark:hover:bg-opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Créer la réunion
+                  {submitting ? "Création..." : "Créer la réunion"}
                 </button>
               </div>
             </form>

@@ -3,6 +3,30 @@ import { CreateReunion, Reunion, UpdateReunion } from "../../types/reunion";
 
 const endPoint = import.meta.env.VITE_API_ENDPOINT;
 
+export type SaveReunionPayload = {
+    titre: string;
+    description: string;
+    dateDebut: string;          
+    dateFin: string;            
+    heureDebut: string;         
+    heureFin: string;           
+    emplacement: string;
+    etat: number;               
+    participantsObligatoires: string[];  
+    participantsFacultatifs: string[];   
+  };
+
+export const saveReunion = async (payload: SaveReunionPayload): Promise<Reunion> => {
+    try {
+      const res = await axios.post(`${endPoint}/api/reunion/save`, payload);
+      return res.data;
+    } catch (error) {
+      console.error("Erreur lors de l’enregistrement de la réunion:", error);
+      
+      throw error;
+    }
+  };
+  
 //  créer une réunion
 export const createReunion = async (reunionData: CreateReunion): Promise<Reunion> => {
     try {
