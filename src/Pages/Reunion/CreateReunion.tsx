@@ -1,276 +1,380 @@
-import React, { useState } from 'react';
-import { PuffLoader } from "react-spinners";
-import { Notyf } from "notyf";
-import "notyf/notyf.min.css";
+// src/pages/reunion/CreateReunion.tsx
+import React, { useEffect, useRef, useState } from "react";
 import Breadcrumb from "../../components/BreadCrumbs/BreadCrumb";
 import DefaultLayout from "../../components/layout/DefaultLayout";
 import CustomInput from "../../components/UIElements/Input/CustomInput";
-import { getInitials } from '../../services/Function/UserFonctionService';
-import { IUserReunion } from '../../types/reunion';
-import { IDecodedToken } from '../../types/user';
+import { getAllUsers } from "../../services/User/UserServices";
 
-const notyf = new Notyf({ position: { x: "center", y: "top" } });
+// ---- Salles disponibles (liste déroulante) ----
+const ROOMS = [
+  "Salle R+1",
+  "Salle R+3",
+  "Salle R+4",
+  "Salle DSI",
+  "Salle CDOU",
+  "Salle mezzanine",
+] as const;
 
-const CreateReunion = () => {
-   const [searchUserInput, setSearchUserInput] = useState<string>("");
-   const [usersList, setUsersList] = useState<Array<any>>([]);
-   const [filteredUsers, setFilteredUsers] = useState<Array<any>>([]);
-   const [isDropdownUserOpen, setIsDropdownUserOpen] = useState<boolean>(false);
-   const [assignedPerson, setAssignedPerson] = useState<Array<IUserReunion>>([]);
-   const [decodedToken, setDecodedToken] = useState<IDecodedToken>();
+// ---------- Types & helpers ----------
+type SimpleUser = {
+  id: string;
+  name: string;
+  email: string;
+  department?: string; // ex: "DOP"
+};
 
-   const handleUserSearch = (searchTerm: string) => {
-    if (searchTerm === "") {
-        setFilteredUsers(usersList);
-        setIsDropdownUserOpen(false);
-    } else {
-        const filtered = usersList.filter(user => 
-            user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.tolowerCase().includes(searchTerm.toLowerCase())
-        );
-        setFilteredUsers(filtered);
-        setIsDropdownUserOpen(true);
+const initialsOf = (fullName?: string) => {
+  if (!fullName) return "";
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] ?? "";
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+  return (first + last).toUpperCase();
+};
+
+// ---------- Autocomplete contrôlé (réutilisable) ----------
+type ParticipantsAutocompleteProps = {
+  label: string;
+  requiredLabel?: boolean;
+  placeholder?: string;
+  startsWithOnly?: boolean;
+  selected: SimpleUser[];                    // valeur contrôlée
+  onChange: (next: SimpleUser[]) => void;    // setter contrôlé
+  excludeIds?: string[];                     // IDs à exclure des suggestions
+  hiddenFieldName: string;                   // champ caché (JSON des IDs)
+};
+
+const ParticipantsAutocomplete: React.FC<ParticipantsAutocompleteProps> = ({
+  label,
+  requiredLabel = false,
+  placeholder = "Rechercher un utilisateur…",
+  startsWithOnly = true,
+  selected,
+  onChange,
+  excludeIds = [],
+  hiddenFieldName,
+}) => {
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<SimpleUser[]>([]);
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  const debounceRef = useRef<number | null>(null);
+
+  // fetch + debounce
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) {
+      setSuggestions([]);
+      setOpen(false);
+      return;
     }
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    debounceRef.current = window.setTimeout(async () => {
+      try {
+        const data = await getAllUsers(q);
+        let list: SimpleUser[] = Array.isArray(data) ? data : [];
 
-   };
+        const v = q.toLowerCase();
+        list =
+          startsWithOnly
+            ? list.filter(
+                (u) =>
+                  (u.name || "").toLowerCase().startsWith(v) ||
+                  (u.email || "").toLowerCase().startsWith(v)
+              )
+            : list.filter(
+                (u) =>
+                  (u.name || "").toLowerCase().includes(v) ||
+                  (u.email || "").toLowerCase().includes(v)
+              );
 
-   const handleAddUser = (user: {
-    id: string;
-    name: string;
-    email: string;
-   }) => {
-    if (!assignedPerson.some(u => u.userid === user.id)) {
-        const formatUser = {
-            userid: user.id,
-            role: "collaborator",
-            user: {
-                name: user.name,
-                email: user.email
-            },
-        };
-        setAssignedPerson(prev => [...prev, formatUser]);
-        setSearchUserInput("");
-        setIsDropdownUserOpen(false);
-    } else {
-        notyf.error("Cet utilisateur participe déjà");
+        // Exclure déjà sélectionnés ici + ceux passés par props
+        const toExclude = new Set<string>([
+          ...selected.map((u) => u.id),
+          ...excludeIds,
+        ]);
+        list = list.filter((u) => !toExclude.has(u.id));
+
+        setSuggestions(list);
+        setOpen(list.length > 0);
+      } catch {
+        setSuggestions([]);
+        setOpen(false);
+      }
+    }, 300);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, startsWithOnly, excludeIds, selected]); // si selected/excludeIds changent → rafraîchir
+
+  // fermer au clic dehors
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (!boxRef.current) return;
+      if (!boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  const addOne = (u: SimpleUser) => {
+    if (!selected.some((p) => p.id === u.id) && !excludeIds.includes(u.id)) {
+      onChange([...selected, u]);
     }
-   };
+    setQuery("");
+    setOpen(false);
+  };
 
-   const handleRemoveUser = (userId: string) => {
-    if (userId === decodedToken?.jti) {
-        setAssignedPerson(prev => prev.filter(user => user.userid !== userId));
+  const removeOne = (id: string) => {
+    onChange(selected.filter((p) => p.id !== id));
+  };
 
-        return;
-    }
-    setAssignedPerson(prev => prev.filter(user => user.userid !== userId));
-   };
-    return (
-        <DefaultLayout>
-            <div className="text-sm mx-2 p-4 md:mx-5">
-                <Breadcrumb
-                    paths={[
-                        { name: "Réunion", to: "/aeromemo/planification" },
-                        { name: "Créer Réunion" },
-                    ]}
-                />
-                <div className="relative mt-2 bg-white p-4 shadow-1 rounded-md border border-zinc-200 dark:border-strokedark dark:bg-boxdark">
-                    <div className="font-bold w-full text-black-2 dark:text-whiten text-center tracking-widest text-lg">
-                        Créer une nouvelle réunion
-                    </div>
-                    <div className="pt-2 w-full px-2 md:px-20 lg:px-30 xl:px-50">
-                        <form className="space-y-4 transition-all duration-1000 ease-in-out">
-                            <CustomInput
-                                type="text"
-                                name="titre"
-                                label="Titre"
-                                value={""}
-                                placeholder="Titre de la réunion"
-                                rounded="medium"
-                                required
-                            />
+  return (
+    <div ref={boxRef}>
+      <label className="mb-1 block font-semibold text-sm text-black dark:text-white">
+        {label} {requiredLabel && <span className="text-red-500">*</span>}
+      </label>
 
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <CustomInput 
-                                    type="date" 
-                                    name="dateDebut" 
-                                    label="Date de début" 
-                                    value={""}
-                                    rounded="medium" 
-                                    required 
-                                />
-                                <CustomInput 
-                                    type="date" 
-                                    name="dateFin" 
-                                    label="Date de fin" 
-                                    value={""}
-                                    rounded="medium" 
-                                    required 
-                                />
-                            </div>
+      <div className="relative">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setOpen(suggestions.length > 0)}
+          placeholder={placeholder}
+          autoComplete="off"
+          className="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-not-allowed disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
+        />
 
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <CustomInput 
-                                    type="time" 
-                                    name="heureDebut" 
-                                    label="Heure de début" 
-                                    value={""}
-                                    rounded="medium" 
-                                    required 
-                                />
-                                <CustomInput 
-                                    type="time" 
-                                    name="heureFin" 
-                                    label="Heure de fin" 
-                                    value={""} 
-                                    rounded="medium" 
-                                    required 
-                                />
-                            </div>
-
-                            <CustomInput
-                                type="text"
-                                name="emplacement"
-                                label="Emplacement"
-                                value={""}
-                                placeholder="Salle de réunion"
-                                rounded="medium"
-                                required
-                            />
-
-                            <div>
-                                <label htmlFor="description" className="mb-1 block font-semibold text-sm text-black dark:text-white">
-                                    Description
-                                </label>
-                                <textarea
-                                    id="description"
-                                    name="description"
-                                    rows={4}
-                                    value={""}
-                                    className="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
-                                    placeholder="Description de la réunion..."
-                                    required
-                                />
-                            </div>
-
-                            {/* Participants Obligatoires */}
-                            <div>
-                                
-                                <div className="hide-scrollbar">
-                                    <div className="">
-                                    
-                                        <CustomInput 
-                                            type="text"
-                                            label="Participant obligatoires"
-                                            rounded="medium"
-                                            className='text-sm'
-                                            value={searchUserInput}
-                                            onChange={(e) => {
-                                                setSearchUserInput(e.target.value);
-                                                handleUserSearch(e.target.value);
-                                            }}
-                                            onFocus={() => setIsDropdownUserOpen}
-                                            placeholder='Rechercher un utilisateur'
-
-                                        />
-                                        {isDropdownUserOpen && filteredUsers.length > 0 && (
-                                            <div className="absolute z-10 mt-1 w-full bg-white dark:bg-boxdark border dark:border-formStrokedark rounded-md shadow-lg max-h-60 overflow-y-auto">
-                                                {filteredUsers.map((user) => (
-                                                    <div 
-                                                        key={user.id}
-                                                        className="flew items-center p-2 hover:bg-gray-100 dark:hover:bg-boxdark2 cursor-pointer"
-                                                        onClick={() => handleAddUser(user)} 
-                                                    >
-                                                        <div className="w-8 h-8 rounded-full bg-secondaryGreen flex items-center justify-center text-white mr-2">
-                                                            {getInitials(user.name)}
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-medium">{user.name}</p>
-                                                            <p className="text-xs text-gray-500">{user.email}</p>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {assignedPerson.map((user) => (
-                                            <div 
-                                                key={user.userid}
-                                                className="flex items-center bg-gray-100 dark:bg-boxdark rounded-full px-3 py-1"
-                                            >
-                                                <div className="w-6 h-6 rounded-full bg-secondaryGreen flex items-center justify-center text-white mr-2 text-xs"> 
-                                                    {getInitials(user.user?.name)}
-                                                </div>
-                                                <span className="text-sm mr-2">{user.user?.name}</span>
-                                                <button
-                                                    onClick={() => handleRemoveUser(user.userid!)}
-                                                    className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                                                >
-                                                    x
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Participants Facultatifs */}
-                            <div>
-                               
-                                <div className="hide-scrollbar">
-                                    <div className="">
-                                       <CustomInput 
-                                            type="text"
-                                            label="Participant facultatifs"
-                                            rounded="medium"
-                                            className='text-sm'
-                                            value={searchUserInput}
-                                            onChange={(e) => {
-                                                setSearchUserInput(e.target.value);
-                                                handleUserSearch(e.target.value);
-                                            }}
-                                            onFocus={() => setIsDropdownUserOpen}
-                                            placeholder='Rechercher un utilisateur'
-
-                                        />
-                                        
-                                    </div>
-                                    <div className="flex gap-4 mt-2 flex-wrap">
-                                        
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="text-sm text-gray-500 flex items-center">
-                                
-                            </div>
-
-                            
-                            <div className="flex justify-end gap-3 pt-4">
-                                <button 
-                                    type="button" 
-                                    className="md:w-fit gap-2 w-full cursor-pointer py-2 px-5 text-center font-semibold text-zinc-700 dark:text-whiten hover:bg-zinc-50 lg:px-8 border border-zinc-300 rounded-lg dark:bg-transparent dark:hover:bg-boxdark2"
-                                    onClick={() => window.history.back()}
-                                >
-                                    Annuler
-                                </button>
-                                <button 
-                                    type="submit" 
-                                    
-                                    className="md:w-fit gap-2 w-full cursor-pointer py-2 px-5 text-center font-semibold text-white hover:bg-opacity-90 lg:px-8 xl:px-5 border border-primaryGreen bg-primaryGreen rounded-lg dark:border-darkgreen dark:bg-darkgreen dark:hover:bg-opacity-90"
-                                >
-                                    
-                                    
-                                       
-                                     Créer la réunion
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+        {open && suggestions.length > 0 && (
+          <div className="absolute z-20 mt-1 w-full max-h-64 overflow-auto rounded-md border bg-white shadow-lg dark:bg-boxdark dark:border-form-strokedark">
+            {suggestions.map((u) => (
+              <button
+                key={u.id}
+                type="button"
+                onClick={() => addOne(u)}
+                className="w-full flex items-center gap-3 p-2 text-left hover:bg-gray-50 dark:hover:bg-boxdark2"
+              >
+                <div className="w-8 h-8 rounded-full bg-emerald-700 text-white flex items-center justify-center text-sm">
+                  {initialsOf(u.name)}
                 </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">{u.name}</span>
+                  <span className="text-xs text-gray-500">{u.email}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* pills */}
+      <div className="flex flex-wrap gap-2 mt-2">
+        {selected.map((u) => (
+          <div
+            key={u.id}
+            className="flex items-center bg-gray-100 dark:bg-boxdark rounded-full px-3 py-1"
+          >
+            <div className="w-6 h-6 rounded-full bg-emerald-700 text-white flex items-center justify-center text-xs mr-2">
+              {initialsOf(u.name)}
             </div>
-        </DefaultLayout>
-    );
+            <span className="text-sm mr-2">
+              {u.name} {u.department ? `(${u.department})` : ""}
+            </span>
+            <button
+              type="button"
+              className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              onClick={() => removeOne(u.id)}
+              aria-label={`Retirer ${u.name}`}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* IDs en JSON à soumettre avec le formulaire */}
+      <input
+        type="hidden"
+        name={hiddenFieldName}
+        value={JSON.stringify(selected.map((u) => u.id))}
+      />
+    </div>
+  );
+};
+
+// ---------- Page ----------
+const CreateReunion = () => {
+  // état centralisé pour assurer l'exclusion mutuelle
+  const [requiredParticipants, setRequiredParticipants] = useState<SimpleUser[]>([]);
+  const [optionalParticipants, setOptionalParticipants] = useState<SimpleUser[]>([]);
+
+  // IDs pour exclusion croisée
+  const requiredIds = requiredParticipants.map((u) => u.id);
+  const optionalIds = optionalParticipants.map((u) => u.id);
+
+  return (
+    <DefaultLayout>
+      <div className="text-sm mx-2 p-4 md:mx-5">
+        <Breadcrumb
+          paths={[
+            { name: "Réunion", to: "/aeromemo/planification" },
+            { name: "Créer Réunion" },
+          ]}
+        />
+
+        <div className="relative mt-2 bg-white p-4 shadow-1 rounded-md border border-zinc-200 dark:border-strokedark dark:bg-boxdark">
+          <div className="font-bold w-full text-black-2 dark:text-whiten text-center tracking-widest text-lg">
+            Créer une nouvelle réunion
+          </div>
+
+          <div className="pt-2 w-full px-2 md:px-20 lg:px-30 xl:px-50">
+            <form className="space-y-4">
+              <CustomInput
+                type="text"
+                name="titre"
+                label="Titre"
+                defaultValue=""
+                placeholder="Titre de la réunion"
+                rounded="medium"
+                required
+              />
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <CustomInput
+                  type="date"
+                  name="dateDebut"
+                  label="Date de début"
+                  defaultValue=""
+                  rounded="medium"
+                  required
+                />
+                <CustomInput
+                  type="date"
+                  name="dateFin"
+                  label="Date de fin"
+                  defaultValue=""
+                  rounded="medium"
+                  required
+                />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <CustomInput
+                  type="time"
+                  name="heureDebut"
+                  label="Heure de début"
+                  defaultValue=""
+                  rounded="medium"
+                  required
+                />
+                <CustomInput
+                  type="time"
+                  name="heureFin"
+                  label="Heure de fin"
+                  defaultValue=""
+                  rounded="medium"
+                  required
+                />
+              </div>
+
+              {/* Emplacement: liste déroulante */}
+              <div>
+                <label
+                  htmlFor="emplacement"
+                  className="mb-1 block font-semibold text-sm text-black dark:text-white"
+                >
+                  Emplacement
+                </label>
+                <select
+                  id="emplacement"
+                  name="emplacement"
+                  defaultValue=""
+                  required
+                  className="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-not-allowed disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
+                >
+                  <option value="" disabled>Choisir une salle…</option>
+                  {ROOMS.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label
+                  htmlFor="description"
+                  className="mb-1 block font-semibold text-sm text-black dark:text-white"
+                >
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  name="description"
+                  rows={4}
+                  defaultValue=""
+                  className="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-not-allowed disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
+                  placeholder="Description de la réunion..."
+                  required
+                />
+              </div>
+
+              {/* Participants obligatoires */}
+              <ParticipantsAutocomplete
+                label="Participants obligatoires"
+                requiredLabel
+                placeholder="Tapez pour rechercher (ex : a...)"
+                selected={requiredParticipants}
+                onChange={(next) => {
+                  // retirer d'optional si présent (sécurité supplémentaire)
+                  const nextOptional = optionalParticipants.filter(
+                    (u) => !next.some((r) => r.id === u.id)
+                  );
+                  setOptionalParticipants(nextOptional);
+                  setRequiredParticipants(next);
+                }}
+                excludeIds={optionalIds} // exclure ceux déjà facultatifs
+                hiddenFieldName="participantsObligatoiresIds"
+              />
+
+              {/* Participants facultatifs */}
+              <ParticipantsAutocomplete
+                label="Participants facultatifs"
+                placeholder="Tapez pour rechercher (ex : a...)"
+                selected={optionalParticipants}
+                onChange={(next) => {
+                  // retirer de required si présent (sécurité supplémentaire)
+                  const nextRequired = requiredParticipants.filter(
+                    (u) => !next.some((o) => o.id === u.id)
+                  );
+                  setRequiredParticipants(nextRequired);
+                  setOptionalParticipants(next);
+                }}
+                excludeIds={requiredIds} // exclure ceux déjà obligatoires
+                hiddenFieldName="participantsFacultatifsIds"
+              />
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  className="md:w-fit gap-2 w-full cursor-pointer py-2 px-5 text-center font-semibold text-zinc-700 dark:text-whiten hover:bg-zinc-50 lg:px-8 border border-zinc-300 rounded-lg dark:bg-transparent dark:hover:bg-boxdark2"
+                  onClick={() => window.history.back()}
+                >
+                  Annuler
+                </button>
+
+                <button
+                  type="submit"
+                  className="md:w-fit gap-2 w-full cursor-pointer py-2 px-5 text-center font-semibold text-white hover:bg-opacity-90 lg:px-8 xl:px-5 border border-primaryGreen bg-primaryGreen rounded-lg dark:border-darkgreen dark:bg-darkgreen dark:hover:bg-opacity-90"
+                >
+                  Créer la réunion
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </DefaultLayout>
+  );
 };
 
 export default CreateReunion;
