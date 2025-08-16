@@ -7,11 +7,11 @@ import { Notyf } from "notyf";
 import "notyf/notyf.min.css";
 import { saveReunion } from "../../services/Reunion/ReunionServices";
 
+// --- Salles disponibles (liste déroulante) ---
+const ROOMS = ["Salle R+1", "Salle R+3", "Salle R+4", "Salle DSI", "Salle CDOU", "Salle mezzanine"] as const;
 
-const ROOMS = ["Salle R+1","Salle R+3","Salle R+4","Salle DSI","Salle CDOU","Salle mezzanine"] as const;
-
-
-type SimpleUser = { id: string; name: string; email: string; department?: string; };
+// --- Types & helpers ---
+type SimpleUser = { id: string; name: string; email: string; department?: string };
 
 const initialsOf = (fullName?: string) => {
   if (!fullName) return "";
@@ -24,11 +24,10 @@ const initialsOf = (fullName?: string) => {
 const ensureSeconds = (hhmm: string | null) => {
   const v = (hhmm || "").trim();
   if (!v) return "";
-  // si "09:00" -> "09:00:00" ; si déjà "09:00:30" on garde
-  return v.length === 5 ? `${v}:00` : v;
+  return v.length === 5 ? `${v}:00` : v; // "09:00" -> "09:00:00"
 };
 
-// ---------- Autocomplete contrôlé (réutilisable) ----------
+// --- Autocomplete contrôlé---
 type ParticipantsAutocompleteProps = {
   label: string;
   requiredLabel?: boolean;
@@ -69,16 +68,24 @@ const ParticipantsAutocomplete: React.FC<ParticipantsAutocompleteProps> = ({
         const data = await getAllUsers(q);
         let list: SimpleUser[] = Array.isArray(data) ? data : [];
         const v = q.toLowerCase();
-        list = (startsWithOnly
-          ? list.filter((u) =>
-              (u.name || "").toLowerCase().startsWith(v) ||
-              (u.email || "").toLowerCase().startsWith(v)
-            )
-          : list.filter((u) =>
-              (u.name || "").toLowerCase().includes(v) ||
-              (u.email || "").toLowerCase().includes(v)
-            )
-        ).filter((u) => !selected.some((s) => s.id === u.id) && !excludeIds.includes(u.id));
+
+        list =
+          startsWithOnly
+            ? list.filter(
+                (u) =>
+                  (u.name || "").toLowerCase().startsWith(v) ||
+                  (u.email || "").toLowerCase().startsWith(v)
+              )
+            : list.filter(
+                (u) =>
+                  (u.name || "").toLowerCase().includes(v) ||
+                  (u.email || "").toLowerCase().includes(v)
+              );
+
+        // exclure: déjà sélectionnés + IDs passés en props
+        list = list.filter(
+          (u) => !selected.some((s) => s.id === u.id) && !(excludeIds || []).includes(u.id)
+        );
 
         setSuggestions(list);
         setOpen(list.length > 0);
@@ -103,7 +110,7 @@ const ParticipantsAutocomplete: React.FC<ParticipantsAutocompleteProps> = ({
   }, []);
 
   const addOne = (u: SimpleUser) => {
-    if (!selected.some((p) => p.id === u.id) && !excludeIds.includes(u.id)) {
+    if (!selected.some((p) => p.id === u.id) && !(excludeIds || []).includes(u.id)) {
       onChange([...selected, u]);
     }
     setQuery("");
@@ -178,11 +185,11 @@ const ParticipantsAutocomplete: React.FC<ParticipantsAutocompleteProps> = ({
   );
 };
 
-// ---------- Page ----------
+// --- Page ---
 const notyf = new Notyf({ position: { x: "center", y: "top" } });
 
 const CreateReunion = () => {
-  // mutual exclusion state
+  // exclusion mutuelle
   const [requiredParticipants, setRequiredParticipants] = useState<SimpleUser[]>([]);
   const [optionalParticipants, setOptionalParticipants] = useState<SimpleUser[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -199,42 +206,62 @@ const CreateReunion = () => {
     const payload = {
       titre: String(form.get("titre") || "").trim(),
       description: String(form.get("description") || "").trim(),
-      dateDebut: String(form.get("dateDebut") || "").trim(), // "YYYY-MM-DD"
-      dateFin: String(form.get("dateFin") || "").trim(),     // "YYYY-MM-DD"
-      heureDebut: ensureSeconds(String(form.get("heureDebut"))), // "HH:mm:ss"
-      heureFin: ensureSeconds(String(form.get("heureFin"))),     // "HH:mm:ss"
+      dateDebut: String(form.get("dateDebut") || "").trim(), 
+      dateFin: String(form.get("dateFin") || "").trim(), 
+      heureDebut: ensureSeconds(String(form.get("heureDebut"))),
+      heureFin: ensureSeconds(String(form.get("heureFin"))), // "HH:mm:ss"
       emplacement: String(form.get("emplacement") || "").trim(),
       etat: 1,
       participantsObligatoires: (() => {
-        try { return JSON.parse(String(form.get("participantsObligatoiresIds") || "[]")); }
-        catch { return []; }
+        try {
+          return JSON.parse(String(form.get("participantsObligatoiresIds") || "[]"));
+        } catch {
+          return [];
+        }
       })(),
       participantsFacultatifs: (() => {
-        try { return JSON.parse(String(form.get("participantsFacultatifsIds") || "[]")); }
-        catch { return []; }
+        try {
+          return JSON.parse(String(form.get("participantsFacultatifsIds") || "[]"));
+        } catch {
+          return [];
+        }
       })(),
     };
 
-    // petite validation rapide
+    // validation rapide
     if (!payload.titre || !payload.description || !payload.dateDebut || !payload.heureDebut || !payload.heureFin || !payload.emplacement) {
+      notyf.dismissAll();
       notyf.error("Merci de remplir tous les champs obligatoires.");
       return;
     }
 
     setSubmitting(true);
+
+    
+    let apiError: any = null;
     try {
       await saveReunion(payload as any);
-      notyf.success("Réunion créée avec succès !");
-      // reset visuel
-      (e.currentTarget as HTMLFormElement).reset();
-      setRequiredParticipants([]);
-      setOptionalParticipants([]);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || "Une erreur est survenue lors de l’enregistrement.";
-      notyf.error(msg);
-    } finally {
-      setSubmitting(false);
+    } catch (err) {
+      apiError = err;
     }
+
+    setSubmitting(false);
+
+    if (apiError) {
+      const msg = (apiError as any)?.response?.data?.message || "Une erreur est survenue lors de l’enregistrement.";
+      notyf.dismissAll();
+      notyf.error(msg);
+      return;
+    }
+
+    notyf.dismissAll();
+    notyf.success("Réunion créée avec succès !");
+    (e.currentTarget as HTMLFormElement).reset();
+    setRequiredParticipants([]);
+    setOptionalParticipants([]);
+
+    // Option: redirection après succès
+    // setTimeout(() => navigate("/aeromemo/planification"), 800);
   };
 
   return (
@@ -278,9 +305,13 @@ const CreateReunion = () => {
                   required
                   className="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-not-allowed disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
                 >
-                  <option value="" disabled>Choisir une salle…</option>
+                  <option value="" disabled>
+                    Choisir une salle…
+                  </option>
                   {ROOMS.map((r) => (
-                    <option key={r} value={r}>{r}</option>
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
                   ))}
                 </select>
               </div>
