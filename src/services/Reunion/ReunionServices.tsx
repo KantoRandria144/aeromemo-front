@@ -26,6 +26,28 @@ export const saveReunion = async (payload: SaveReunionPayload): Promise<Reunion>
       throw error;
     }
   };
+
+export const listAllReunion = async (): Promise<Reunion[]> => {
+    try {
+        const response = await axios.get(`${endPoint}/api/Reunion/list`, {
+            headers: {
+                "Accept": "application/json"
+            }
+        });
+        console.log("Réponse brute de l'API:", response);
+        return response.data;
+    } catch (error: any) {
+        if (error.response) {
+            console.error("Erreur côté serveur:", error.response.data);
+        } else if (error.request) {
+            console.error("Aucune réponse reçue:", error.request);
+        } else {
+            console.error("Erreur de configuration Axios:", error.message);
+        }
+        throw error;
+    }
+};
+
   
 //  créer une réunion
 export const createReunion = async (reunionData: CreateReunion): Promise<Reunion> => {

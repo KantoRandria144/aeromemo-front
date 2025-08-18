@@ -1,133 +1,98 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../../components/BreadCrumbs/BreadCrumb";
 import CustomSelect from "../../../components/UIElements/Select/CustomSelect";
 import CustomInputUserSpecifiedSearch from "../../../components/UIElements/Input/CustomInputUserSpecifiedSearch";
 import CustomInput from "../../../components/UIElements/Input/CustomInput";
 import DefaultLayout from "../../../components/layout/DefaultLayout";
+import { Reunion } from "../../../types/reunion";
+import { getAllReunions, listAllReunion } from "../../../services/Reunion/ReunionServices";
 
-const Planification = ({
-    search,
-    availableUser,
-    selectedUserInput,
-    setSelecteduserInput,
-    setSearch,
-}: {
-    search: {
-        title: string;
-        member: string;
-        priority: string;
-        criticity: string;
-        completionPercentage: string;
-        startDate: string | undefined;
-        endDate: string | undefined;
-    };
-    availableUser: {
-        id: string;
-        name: string;
-        email: string;
-    }[];
-    selectedUserInput: Array<{
-        id: string;
-        name: string;
-        email: string;
-    }>;
-    setSelecteduserInput: React.Dispatch<
-        React.SetStateAction<
-            Array<{
-                id: string;
-                name: string;
-                email: string;
-            }>
-        >
-    >;
-    setSearch: React.Dispatch<
-        React.SetStateAction<{
-            title: string;
-            member: string;
-            priority: string;
-            criticity: string;
-            completionPercentage: string;
-            startDate: string | undefined;
-            endDate: string | undefined;
-        }>
-    >;
-}) => {
+const Planification = () => {
+    
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<"all" | "mine">("all");
+    const [reunions, setReunions] = useState<Reunion[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+
+    useEffect(() => {
+        const fetchReunions = async () => {
+            try {
+                setLoading(true);
+                const data = await listAllReunion();
+                setReunions(data);
+            } catch (error) {
+                console.error("Erreur lors du chargement des réunions:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchReunions();
+    }, []);
 
     return (
         <DefaultLayout>
             <div className="mx-2 py-4 md:mx-10">
                 <>
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-    <Breadcrumb
-        paths={[{ name: "Liste des Projets", to: "/aeromemo/planification" }]}
-    />
+                        <Breadcrumb
+                            paths={[{ name: "Liste des Projets", to: "/aeromemo/planification" }]}
+                        />
 
-    <button
-        onClick={() => navigate("/aeromemo/créer-réunion")}
-        className="md:w-fit mb-2 gap-2 flex justify-center w-full md:w-auto cursor-pointer mt-2 py-2 lg:px-3 xl:px-2 text-center font-medium text-sm text-white hover:bg-opacity-90 border border-primaryGreen bg-primaryGreen rounded-lg dark:border-darkgreen dark:bg-darkgreen dark:hover:bg-opacity-90 md:ease-in md:duration-300 md:transform"
-    >
-        <svg
-            width="15"
-            height="15"
-            viewBox="0 0 20 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-        >
-            <path
-                d="M6 12H18M12 6V18"
-                stroke="#fff"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            ></path>
-        </svg>
-        Ajouter un nouveau Projet
-    </button>
-</div>
+                        <button
+                            onClick={() => navigate("/aeromemo/créer-réunion")}
+                            className="md:w-fit mb-2 gap-2 flex justify-center w-full md:w-auto cursor-pointer mt-2 py-2 lg:px-3 xl:px-2 text-center font-medium text-sm text-white hover:bg-opacity-90 border border-primaryGreen bg-primaryGreen rounded-lg dark:border-darkgreen dark:bg-darkgreen dark:hover:bg-opacity-90 md:ease-in md:duration-300 md:transform"
+                        >
+                            <svg
+                                width="15"
+                                height="15"
+                                viewBox="0 0 20 20"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                    d="M6 12H18M12 6V18"
+                                    stroke="#fff"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                ></path>
+                            </svg>
+                            Créer un nouveau réunion
+                        </button>
+                    </div>
 
                     <div className="bg-white min-h-[80vh] pt-2 shadow-1 rounded-lg border border-zinc-200 dark:border-strokedark dark:bg-boxdark">
                         <div className="flex gap-3 m-5 flex-wrap justify-between items-center">
                             <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 grid-cols-1 gap-3 w-full">
-                                <CustomSelect 
+                                <CustomSelect
                                     label="Type reunion"
                                     data={["Réunion Transverse", "Réunion Projet"]}
                                     value=""
-                                    onValueChange={()=>{}}
+                                    onValueChange={() => { }}
                                 />
-                                <CustomInputUserSpecifiedSearch
+                                {/* <CustomInputUserSpecifiedSearch
                                     label="Membre"
                                     rounded="medium"
                                     placeholder="Rechercher"
-                                    user={availableUser}
-                                    userSelected={selectedUserInput}
-                                    setUserSelected={setSelecteduserInput}
-                                />
+                                    // user={"availableUser"}
+                                    // userSelected={"selectedUserInput"}
+                                    // setUserSelected={"setSelecteduserInput"}
+                                /> */}
                                 <CustomInput
                                     type="date"
-                                    value={search.startDate}
+                                    value={""}
                                     label="Date début"
                                     rounded="medium"
-                                    onChange={(e) => {
-                                        setSearch({
-                                            ...search,
-                                            startDate: e.target.value,
-                                        });
-                                    }}
+                                    
                                 />
                                 <CustomInput
                                     type="date"
-                                    value={search.endDate}
+                                    value={""}
                                     label="Date de fin"
                                     rounded="medium"
-                                    onChange={(e) => {
-                                        setSearch({
-                                            ...search,
-                                            endDate: e.target.value,
-                                        });
-                                    }}
+                                   
                                 />
                                 <div className="flex items-end gap-2 mx-3">
                                     <div className="pb-2">
@@ -151,18 +116,11 @@ const Planification = ({
                                         </button>
                                     </div>
                                     <div>
-                                        <button type="button" className="px-2 cursor-pointer mt-2 py-2 lg:px-3 xl:px-2 text-center font-medium text-sm text-white hover:bg-opacity-90 border border-primaryGreen bg-primaryGreen rounded-lg dark:border-darkgreen dark:bg-darkgreen dark:hover:bg-opacity-90 md:ease-in md:duration-300 md:transform">
+                                        <button
+                                            type="button"
+                                            className="px-2 cursor-pointer mt-2 py-2 lg:px-3 xl:px-2 text-center font-medium text-sm text-white hover:bg-opacity-90 border border-primaryGreen bg-primaryGreen rounded-lg dark:border-darkgreen dark:bg-darkgreen dark:hover:bg-opacity-90 md:ease-in md:duration-300 md:transform"
+                                        >
                                             Rechercher
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-8 gap-2 hidden">
-                                <div>
-                                    <div className="flex mt-2.5 justify-between items-center text-sm border rounded-md shadow-sm bg-gray-100 dark:bg-gray-800 transition hover:shadow-md">
-                                        <span className="px-3 py-2 whitespace-nowrap overflow-hidden text-ellipsis text-gray-700 dark:text-gray-300 font-medium"></span>
-                                        <button className="flex items-center justify-center px-3 py-2 text-red-500 dark:text-red-400 hover:text-white dark:hover:text-whiten hover:bg-red-500 transition rounded-r-md focus:outline-none focus:ring-2 focus:ring-red-500">
-                                            ✕
                                         </button>
                                     </div>
                                 </div>
@@ -174,11 +132,10 @@ const Planification = ({
                                 <button
                                     role="tab"
                                     type="button"
-                                    className={`flex whitespace-nowrap items-center h-8 px-5 font-medium rounded-lg outline-none focus:ring-2 focus:green-600 focus:ring-inset ${
-                                        activeTab === "all"
-                                            ? "text-green-600 shadow bg-white dark:text-white dark:bg-green-600"
-                                            : "hover:text-gray-800 focus:text-green-600 dark:text-gray-400 dark:hover:text-gray-300 dark:focus:text-gray-400"
-                                    }`}
+                                    className={`flex whitespace-nowrap items-center h-8 px-5 font-medium rounded-lg outline-none focus:ring-2 focus:green-600 focus:ring-inset ${activeTab === "all"
+                                        ? "text-green-600 shadow bg-white dark:text-white dark:bg-green-600"
+                                        : "hover:text-gray-800 focus:text-green-600 dark:text-gray-400 dark:hover:text-gray-300 dark:focus:text-gray-400"
+                                        }`}
                                     onClick={() => setActiveTab("all")}
                                 >
                                     Tous
@@ -186,11 +143,10 @@ const Planification = ({
                                 <button
                                     role="tab"
                                     type="button"
-                                    className={`flex whitespace-nowrap items-center h-8 px-5 font-medium rounded-lg outline-none focus:ring-2 focus:ring-green-600 focus:ring-inset ${
-                                        activeTab === "mine"
-                                            ? "text-green-600 shadow bg-white dark:text-white dark:bg-green-600"
-                                            : "hover:text-gray-800 focus:text-green-600 dark:text-gray-400 dark:hover:text-gray-300 dark:focus:text-gray-400"
-                                    }`}
+                                    className={`flex whitespace-nowrap items-center h-8 px-5 font-medium rounded-lg outline-none focus:ring-2 focus:ring-green-600 focus:ring-inset ${activeTab === "mine"
+                                        ? "text-green-600 shadow bg-white dark:text-white dark:bg-green-600"
+                                        : "hover:text-gray-800 focus:text-green-600 dark:text-gray-400 dark:hover:text-gray-300 dark:focus:text-gray-400"
+                                        }`}
                                     onClick={() => setActiveTab("mine")}
                                 >
                                     Mes réunions
@@ -304,7 +260,6 @@ const Planification = ({
                                                         <span>Participant</span>
                                                     </div>
                                                 </th>
-                                               
                                                 <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
                                                     <div className="flex items-center gap-1">
                                                         <span>Statut</span>
@@ -321,14 +276,37 @@ const Planification = ({
                                 </thead>
                                 <tbody>
                                     {activeTab === "all" ? (
-                                        // Contenu pour "Tous"
-                                        <tr>
-                                            <td colSpan={6} className="text-center py-4">
-                                                Aucune réunion trouvée
-                                            </td>
-                                        </tr>
+                                       reunions && reunions.length > 0 ? (
+                                            reunions.map((reunion) => (
+                                                <tr key={reunion.id} className="border-b hover:bg-gray-50">
+                                                    <td className="pl-2">
+                                                        <input type="checkbox" />
+                                                    </td>
+                                                    <td className="px-4 py-2">
+                                                        {new Date(reunion.dateDebut).toLocaleDateString()}
+                                                    </td>
+                                                    <td className="px-4 py-2">{reunion.titre}</td>
+                                                    <td className="px-4 py-2">{reunion.etat}</td>
+                                                    <td className="px-4 py-2">
+                                                        <button
+                                                            onClick={() =>
+                                                                navigate(`/aeromemo/reunion/${reunion.id}`)
+                                                            }
+                                                            className="text-primaryGreen hover:underline"
+                                                        >
+                                                            Voir
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={6} className="text-center py-4">
+                                                    Aucune réunion trouvée
+                                                </td>
+                                            </tr>
+                                        )
                                     ) : (
-                                        // Contenu pour "Mes réunions"
                                         <tr>
                                             <td colSpan={6} className="text-center py-4">
                                                 Aucune de vos réunions trouvée

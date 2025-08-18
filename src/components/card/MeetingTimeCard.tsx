@@ -101,7 +101,7 @@ const MeetingTimeCard: FC<MeetingTimeCardProps> = ({
     const colors = colorSchemes[colorScheme];
 
     return (
-        <div className={`${colors.bg} ${colors.border} border rounded-lg p-4 w-100 shadow-sm`}>
+        <div className={`${colors.bg} ${colors.border} rounded-2xl shadow-md hover:shadow-lg transition transform hover:scale-[1.02] p-4`}>
             {/* Header icon & titre */}
             <div className="flex items-center gap-2 mb-3">
                 <IconComponent className={`w-4 h-4 ${colors.icon}`} />

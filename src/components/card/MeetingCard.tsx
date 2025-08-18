@@ -13,7 +13,7 @@ type MeetingCardProps = {
 const MeetingCard = ({ title = "Réunion de la journée", meetings = [] }: MeetingCardProps) => {
     return(
         <>
-        <div className="bg-pink-200 border border-pink-300 rounded-lg p-4 w-100 shadow-sm">
+        <div className="rounded-2xl shadow-md bg-pink-100 hover:shadow-lg transition transform hover:scale-[1.02] p-4">
             {/* icone start*/}
             <div className="flex items-center gap-2 mb-3">
                 <Calendar className="w-4 h-4 text-pink-900"/>
