@@ -32,6 +32,19 @@ const AddAccessModal = ({
     assignAccess: 0,
     watchAllActivity: 0,
   });
+  const [reunionAccess, setReunionAccess] = useState({
+    id: "",
+    assign: 0,
+    create: 0,
+    update: 0,
+    updateMySubordinatesReunion: 0,
+    updateAllReunion: 0,
+    delete: 0,
+    deleteMySubordinatesReunion: 0,
+    deleteAllReunion: 0,
+    watchMyReuniopn: 0,
+    
+  })
  
   const handleModif = (e: any) => {
     e.preventDefault();
