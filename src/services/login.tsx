@@ -2,7 +2,7 @@ import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import {
   HabilitationAdminInterface,
-  HabilitationProjectInterface,
+  HabilitationReunionInterface,
 } from "../types/Habilitation";
 
 const endPoint = import.meta.env.VITE_API_ENDPOINT;
@@ -25,36 +25,63 @@ export const useAuthService = () => {
         { withCredentials: false }
       );
 
+      console.log("Réponse du backend login :", response.data);
+
       if (response.data && response.data.type === "success") {
         let adminPrivilege = false;
-        const habilitation = response.data.user.habilitations;
+        let reunionPrivilege = false;
 
-        habilitation?.forEach(
-          (hab: {
-            habilitationAdmins: HabilitationAdminInterface[];
-            habilitationProjects: HabilitationProjectInterface[];
-          }) => {
-            hab.habilitationAdmins.forEach(
-              (admin: HabilitationAdminInterface) => {
-                if (
-                  admin?.createHabilitation === 1 ||
-                  admin?.deleteHabilitation === 1 ||
-                  admin?.modifyHierarchy === 1 ||
-                  admin?.restoreHierarchy === 1 ||
-                  admin?.updateHabilitation === 1
-                ) {
-                  adminPrivilege = true;
-                }
+        const habilitations = response.data.user?.habilitations || [];
+
+        if (Array.isArray(habilitations)) {
+          habilitations.forEach(
+            (hab: {
+              habilitationAdmins?: HabilitationAdminInterface[];
+              habilitationReunions?: HabilitationReunionInterface[];
+            }) => {
+              // Vérif si c’est bien un tableau avant de boucler
+              if (Array.isArray(hab.habilitationAdmins)) {
+                hab.habilitationAdmins.forEach(
+                  (admin: HabilitationAdminInterface) => {
+                    if (
+                      admin?.createHabilitation === 1 ||
+                      admin?.deleteHabilitation === 1 ||
+                      admin?.modifyHierarchy === 1 ||
+                      admin?.restoreHierarchy === 1 ||
+                      admin?.updateHabilitation === 1
+                    ) {
+                      adminPrivilege = true;
+                    }
+                  }
+                );
               }
-            );
-          }
-        );
 
-        // Sauvegarde du token selon le rôle
+              if (Array.isArray(hab.habilitationReunions)) {
+                hab.habilitationReunions.forEach(
+                  (reunion: HabilitationReunionInterface) => {
+                    if (
+                      reunion.create === 1 ||
+                      reunion.update === 1 ||
+                      reunion.delete === 1 ||
+                      reunion.assign === 1
+                    ) {
+                      reunionPrivilege = true;
+                    }
+                  }
+                );
+              }
+            }
+          );
+        }
+
+        // Sauvegarde du token selon les privilèges
         if (adminPrivilege) {
           localStorage.setItem("_au_ad", response.data.token);
         }
-        // Toujours sauvegarder _au_pr pour détecter l'utilisateur connecté
+        if (reunionPrivilege) {
+          localStorage.setItem("_au_pr", response.data.token);
+        }
+        // Toujours sauvegarder _au_pr (pour savoir qui est connecté)
         localStorage.setItem("_au_pr", response.data.token);
 
         // Met à jour le contexte Auth
