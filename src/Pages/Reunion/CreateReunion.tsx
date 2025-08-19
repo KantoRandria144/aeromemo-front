@@ -5,7 +5,8 @@ import CustomInput from "../../components/UIElements/Input/CustomInput";
 import { getAllUsers } from "../../services/User/UserServices";
 import { Notyf } from "notyf";
 import "notyf/notyf.min.css";
-import { saveReunion } from "../../services/Reunion/ReunionServices";
+import { saveReunion , buildOutlookUrl} from "../../services/Reunion/ReunionServices";
+import axios from "axios";
 
 // --- Salles disponibles (liste déroulante) ---
 const ROOMS = ["Salle R+1", "Salle R+3", "Salle R+4", "Salle DSI", "Salle CDOU", "Salle mezzanine"] as const;
@@ -193,13 +194,16 @@ const CreateReunion = () => {
   const [requiredParticipants, setRequiredParticipants] = useState<SimpleUser[]>([]);
   const [optionalParticipants, setOptionalParticipants] = useState<SimpleUser[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [outlookUrl, setOutlookUrl] = useState<string | null>(null);
+  const [showOutlookModal, setShowOutlookModal] = useState(false);
 
   const requiredIds = requiredParticipants.map((u) => u.id);
   const optionalIds = optionalParticipants.map((u) => u.id);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (submitting) return;
+    if (submitting || !formRef.current) return;
 
     const form = new FormData(e.currentTarget);
 
@@ -238,28 +242,32 @@ const CreateReunion = () => {
     setSubmitting(true);
 
     
-    let apiError: any = null;
     try {
-      await saveReunion(payload as any);
-    } catch (err) {
-      apiError = err;
-    }
-
-    setSubmitting(false);
-
-    if (apiError) {
-      const msg = (apiError as any)?.response?.data?.message || "Une erreur est survenue lors de l’enregistrement.";
-      notyf.dismissAll();
+      const response = await saveReunion(payload);
+      const url = response.outlookUrl || buildOutlookUrl(response.reunion);
+      
+      setOutlookUrl(url);
+      setShowOutlookModal(true);
+      
+      notyf.success("Réunion créée avec succès !");
+      formRef.current.reset();
+      setRequiredParticipants([]);
+      setOptionalParticipants([]);
+    } catch (error) {
+      let msg = "Une erreur est survenue lors de l'enregistrement.";
+      
+      if (axios.isAxiosError(error)) {
+        msg = error.response?.data?.message || 
+              error.message || 
+              msg;
+      } else if (error instanceof Error) {
+        msg = error.message;
+      }
+      
       notyf.error(msg);
-      return;
+    } finally {
+      setSubmitting(false);
     }
-
-    notyf.dismissAll();
-    notyf.success("Réunion créée avec succès !");
-    (e.currentTarget as HTMLFormElement).reset();
-    setRequiredParticipants([]);
-    setOptionalParticipants([]);
-
     // Option: redirection après succès
     // setTimeout(() => navigate("/aeromemo/planification"), 800);
   };
@@ -280,7 +288,7 @@ const CreateReunion = () => {
           </div>
 
           <div className="pt-2 w-full px-2 md:px-20 lg:px-30 xl:px-50">
-            <form className="space-y-4" onSubmit={onSubmit}>
+            <form className="space-y-4" onSubmit={onSubmit} ref={formRef}>
               <CustomInput type="text" name="titre" label="Titre" defaultValue="" placeholder="Titre de la réunion" rounded="medium" required />
 
               <div className="grid md:grid-cols-2 gap-4">
@@ -383,6 +391,32 @@ const CreateReunion = () => {
             </form>
           </div>
         </div>
+        {showOutlookModal && outlookUrl && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-boxdark rounded-lg p-6 max-w-md w-full">
+              <h3 className="text-lg font-bold mb-4">Ajouter à Outlook</h3>
+              <p className="mb-6">Voulez-vous ajouter cette réunion à votre calendrier Outlook ?</p>
+              
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowOutlookModal(false)}
+                  className="px-4 py-2 border rounded-md dark:border-form-strokedark dark:bg-boxdark-2 dark:text-white"
+                >
+                  Plus tard
+                </button>
+                <button
+                  onClick={() => {
+                    window.open(outlookUrl, '_blank');
+                    setShowOutlookModal(false);
+                  }}
+                  className="px-4 py-2 border rounded-md dark:border-form-strokedark dark:bg-boxdark-2 dark:text-white"
+                >
+                  Ouvrir Outlook
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DefaultLayout>
   );

@@ -30,7 +30,8 @@ export interface Reunion {
     heureFin:string;
     emplacement?:string;
     etat:EtatReunion;
-    outlookEventId?:string;
+    participantsObligatoires: string[];  
+    participantsFacultatifs: string[]; 
 }
 export enum EtatReunion {
     Planifie="Planifié",
@@ -57,4 +58,9 @@ export interface IUserReunion {
     user?: any;
     userid: string | undefined;
     role?: string;
+}
+
+export interface SaveReunionResponse {
+  reunion: Reunion;
+  outlookUrl: string;
 }

@@ -9,11 +9,12 @@ import { Reunion } from "../../../types/reunion";
 import { getAllReunions, listAllReunion } from "../../../services/Reunion/ReunionServices";
 
 const Planification = () => {
-    
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<"all" | "mine">("all");
     const [reunions, setReunions] = useState<Reunion[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+    const [selectedReunions, setSelectedReunions] = useState<string[]>([]);
+    const [isAllSelected, setIsAllSelected] = useState(false);
 
     useEffect(() => {
         const fetchReunions = async () => {
@@ -30,6 +31,29 @@ const Planification = () => {
 
         fetchReunions();
     }, []);
+
+    const handleSelectAllReunions = () => {
+        if (reunions) {
+            if (selectedReunions.length < reunions.length) {
+                setSelectedReunions([]);
+                reunions.map((r) => setSelectedReunions((prev) => [...prev, r.id]));
+                setIsAllSelected(true);
+            } else {
+                setSelectedReunions([]);
+                setIsAllSelected(false);
+            }
+        }
+    };
+
+    const handleSelectReunion = (reunionId: string) => {
+        setSelectedReunions((prev) => {
+            if (prev.includes(reunionId)) {
+                return prev.filter((id) => id !== reunionId);
+            } else {
+                return [...prev, reunionId];
+            }
+        });
+    };
 
     return (
         <DefaultLayout>
@@ -72,27 +96,17 @@ const Planification = () => {
                                     value=""
                                     onValueChange={() => { }}
                                 />
-                                {/* <CustomInputUserSpecifiedSearch
-                                    label="Membre"
-                                    rounded="medium"
-                                    placeholder="Rechercher"
-                                    // user={"availableUser"}
-                                    // userSelected={"selectedUserInput"}
-                                    // setUserSelected={"setSelecteduserInput"}
-                                /> */}
                                 <CustomInput
                                     type="date"
                                     value={""}
                                     label="Date début"
                                     rounded="medium"
-                                    
                                 />
                                 <CustomInput
                                     type="date"
                                     value={""}
                                     label="Date de fin"
                                     rounded="medium"
-                                   
                                 />
                                 <div className="flex items-end gap-2 mx-3">
                                     <div className="pb-2">
@@ -154,6 +168,31 @@ const Planification = () => {
                             </nav>
                         </div>
 
+                        {/* Bulk actions when items are selected */}
+                        <div
+                            className={`mt-2 border-primaryGreen border dark:border-formStrokedark bg-white dark:bg-boxdark z-40 relative px-2 flex items-center justify-between transition-transform duration-200 ease-in-out transform ${
+                                selectedReunions.length > 0
+                                    ? "scale-y-100 opacity-100"
+                                    : "scale-y-0 opacity-0"
+                            }`}
+                        >
+                            <div>
+                                {selectedReunions.length === 1
+                                    ? "1 élément sélectionné"
+                                    : `${selectedReunions.length} éléments sélectionnés`}
+                            </div>
+                            <div>
+                                <button
+                                    onClick={() => {
+                                        // Handle bulk actions here
+                                    }}
+                                    className="mb-1 mt-1 min-w-20 w-full text-sm py-2.5 px-3 md:h-10 border flex items-center justify-between border-stroke dark:border-formStrokedark rounded-lg text-left text-black"
+                                >
+                                    Actions
+                                </button>
+                            </div>
+                        </div>
+
                         <div className="pb-4 items-center flex justify-between px-3 transition-opacity">
                             <button className="rotate-180">
                                 <svg
@@ -197,13 +236,21 @@ const Planification = () => {
                                 <thead className="pt-5 rounded-t-xl bg-primaryGreen dark:bg-darkgreen">
                                     <tr className="border border-stone-300 border-opacity-[0.1] border-r-0 border-l-0 text-white text-left">
                                         <th className="pl-2">
-                                            <button className="cursor-pointer border w-5 h-5">
+                                            <button
+                                                onClick={handleSelectAllReunions}
+                                                className="cursor-pointer border w-5 h-5"
+                                            >
                                                 <svg
                                                     width="18"
                                                     height="17"
                                                     viewBox="0 0 24 24"
                                                     fill="none"
                                                     xmlns="http://www.w3.org/2000/svg"
+                                                    className={`${
+                                                        selectedReunions.length === reunions.length
+                                                            ? "visible"
+                                                            : "invisible"
+                                                    }`}
                                                 >
                                                     <path
                                                         d="M4 12.6111L8.92308 17.5L20 6.5"
@@ -278,21 +325,67 @@ const Planification = () => {
                                     {activeTab === "all" ? (
                                        reunions && reunions.length > 0 ? (
                                             reunions.map((reunion) => (
-                                                <tr key={reunion.id} className="border-b hover:bg-gray-50">
-                                                    <td className="pl-2">
-                                                        <input type="checkbox" />
+                                                <tr key={reunion.id} className="border-b hover:bg-gray-50 dark:hover:bg-boxdark2">
+                                                    <td className="pl-2 border-b border-[#eee] dark:border-strokedark">
+                                                        <button
+                                                            className="cursor-pointer border w-5 h-5"
+                                                            onClick={() => handleSelectReunion(reunion.id)}
+                                                        >
+                                                            <svg
+                                                                width="18"
+                                                                height="17"
+                                                                viewBox="0 0 24 24"
+                                                                fill="none"
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                className={`${
+                                                                    selectedReunions.includes(reunion.id)
+                                                                        ? "visible"
+                                                                        : "invisible"
+                                                                }`}
+                                                            >
+                                                                <path
+                                                                    d="M4 12.6111L8.92308 17.5L20 6.5"
+                                                                    className="stroke-black-2 dark:stroke-whiten"
+                                                                    strokeWidth="2"
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                />
+                                                            </svg>
+                                                        </button>
                                                     </td>
-                                                    <td className="px-4 py-2">
+                                                    <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
                                                         {new Date(reunion.dateDebut).toLocaleDateString()}
                                                     </td>
-                                                    <td className="px-4 py-2">{reunion.titre}</td>
-                                                    <td className="px-4 py-2">{reunion.etat}</td>
-                                                    <td className="px-4 py-2">
+                                                    <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
+                                                        <p className="text-black text-justify dark:text-white font-bold">
+                                                            {reunion.titre}
+                                                        </p>
+                                                    </td>
+                                                    <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
+                                                        {/* Organisateur */}
+                                                    </td>
+                                                    <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
+                                                        {/* Participants */}
+                                                    </td>
+                                                    <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
+                                                        <p
+                                                            className={`font-semibold rounded-md text-center py-1 px-2 text-xs w-fit ${
+                                                                reunion.etat === "Planifié"
+                                                                    ? "bg-green-100 border text-green-600 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700"
+                                                                    : reunion.etat === "Annulé"
+                                                                    ? "bg-red-100 border text-red-600 border-red-300 dark:bg-red-900 dark:text-red-300 dark:border-red-700"
+                                                                    : "bg-gray-100 border text-gray-600 border-gray-300 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700"
+                                                            }`}
+                                                        >
+                                                            {reunion.etat}
+                                                        </p>
+                                                    </td>
+                                                    <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
                                                         <button
                                                             onClick={() =>
                                                                 navigate(`/aeromemo/reunion/${reunion.id}`)
                                                             }
-                                                            className="text-primaryGreen hover:underline"
+                                                            className="text-primaryGreen hover:underline dark:text-darkgreen"
                                                         >
                                                             Voir
                                                         </button>
@@ -301,14 +394,14 @@ const Planification = () => {
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan={6} className="text-center py-4">
+                                                <td colSpan={7} className="text-center py-4 border-b border-[#eee] dark:border-strokedark">
                                                     Aucune réunion trouvée
                                                 </td>
                                             </tr>
                                         )
                                     ) : (
                                         <tr>
-                                            <td colSpan={6} className="text-center py-4">
+                                            <td colSpan={7} className="text-center py-4 border-b border-[#eee] dark:border-strokedark">
                                                 Aucune de vos réunions trouvée
                                             </td>
                                         </tr>

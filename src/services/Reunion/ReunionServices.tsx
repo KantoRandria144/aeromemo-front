@@ -16,7 +16,12 @@ export type SaveReunionPayload = {
     participantsFacultatifs: string[];   
   };
 
-export const saveReunion = async (payload: SaveReunionPayload): Promise<Reunion> => {
+export type SaveReunionResponse = {
+    reunion: Reunion;
+    outlookUrl: string;
+};
+
+export const saveReunion = async (payload: SaveReunionPayload): Promise<SaveReunionResponse> => {
     try {
       const res = await axios.post(`${endPoint}/api/reunion/save`, payload);
       return res.data;
@@ -26,6 +31,18 @@ export const saveReunion = async (payload: SaveReunionPayload): Promise<Reunion>
       throw error;
     }
   };
+
+export const buildOutlookUrl = (reunion: Reunion): string => {
+    const startTime = `${reunion.dateDebut}T${reunion.heureDebut}`;
+    const endTime = `${reunion.dateFin}T${reunion.heureFin}`;
+    
+    return `https://outlook.office.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent` +
+        `&startdt=${encodeURIComponent(startTime)}` +
+        `&enddt=${encodeURIComponent(endTime)}` +
+        `&subject=${encodeURIComponent(reunion.titre)}` +
+        `&location=${encodeURIComponent(reunion.emplacement || "")}` +
+        `&body=${encodeURIComponent(reunion.description || "")}`;
+};
 
 export const listAllReunion = async (): Promise<Reunion[]> => {
     try {

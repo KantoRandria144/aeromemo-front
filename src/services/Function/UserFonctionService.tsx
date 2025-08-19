@@ -53,45 +53,33 @@ const transformHabilitation = (habilitations: any[]) => {
       updateHabilitation: false,
       actualizeUserData: false,
       assignAccess: false,
-      watchAllActivity: false,
     },
-    project: {
+    reunion: {
       assign: false,
       create: false,
       delete: false,
       update: false,
-      watchMyProject: false,
-      watchMySubordinatesProject: false,
-      watchAllProject: false,
-      updateMySubordinatesProject: false,
-      updateAllProject: false,
-      deleteMySubordinatesProject: false,
-      deleteAllProject: false,
-      manageMySubordinatesProject: false,
+      watchMyReunion: false,
+      watchMySubordinatesReunion: false,
+      watchAllReunion: false,
+      updateMySubordinatesReunion: false,
+      updateAllReunion: false,
+      deleteMySubordinatesReunion: false,
+      deleteAllReunion: false,
+      manageMySubordinatesReunion: false,
       manage: false,
     },
-    transverse: {
-      create: false,
-      update: false,
-      delete: false,
-    },
-    intercontract: {
-      create: false,
-      update: false,
-      delete: false,
-    },
+    
   };
   habilitations.forEach(
     ({
       habilitationAdmins,
-      habilitationProjects,
-      habilitationTransverses,
-      habilitationIntercontract,
+      habilitationReunions,
+     
     }) => {
       const admin = habilitationAdmins?.[0];
-      const project = habilitationProjects?.[0];
-      const transverse = habilitationTransverses?.[0];
-      const intercontract = habilitationIntercontract?.[0];
+      const reunion = habilitationReunions?.[0];
+      
 
       // Admin habilitations: Only update if current value is false and new value is true (1)
       if (admin) {
@@ -105,41 +93,31 @@ const transformHabilitation = (habilitations: any[]) => {
           admin.updateHabilitation === 1;
         habilitation.admin.actualizeUserData ||= admin.actualizeUserData === 1;
         habilitation.admin.assignAccess ||= admin.assignAccess === 1;
-        habilitation.admin.watchAllActivity ||= admin.watchAllActivity === 1;
       }
 
-      // Project habilitations: Same logic as admin
-      if (project) {
-        habilitation.project.watchMyProject ||= project.watchMyProject === 1;
-        habilitation.project.watchMySubordinatesProject ||=
-          project.watchMySubordinatesProject === 1;
-        habilitation.project.watchAllProject ||= project.watchAllProject === 1;
-        habilitation.project.create ||= project.create === 1;
-        habilitation.project.update ||= project.update === 1;
-        habilitation.project.updateAllProject ||=
-          project.updateAllProject === 1;
-        habilitation.project.updateMySubordinatesProject ||=
-          project.updateMySubordinatesProject === 1;
-        habilitation.project.delete ||= project.delete === 1;
-        habilitation.project.deleteAllProject ||=
-          project.deleteAllProject === 1;
-        habilitation.project.deleteMySubordinatesProject ||=
-          project.deleteMySubordinatesProject === 1;
-        habilitation.project.manageMySubordinatesProject ||=
-          project.manageMySubordinatesProject === 1;
-        habilitation.project.manage ||= project.manage === 1;
-        habilitation.project.assign ||= project.assign === 1;
+      // Reunion habilitations: Same logic as admin
+      if (reunion) {
+        habilitation.reunion.watchMyReunion ||= reunion.watchMyReunion === 1;
+        habilitation.reunion.watchMySubordinatesReunion ||=
+          reunion.watchMySubordinatesReunion === 1;
+        habilitation.reunion.watchAllReunion ||= reunion.watchAllReunion === 1;
+        habilitation.reunion.create ||= reunion.create === 1;
+        habilitation.reunion.update ||= reunion.update === 1;
+        habilitation.reunion.updateAllReunion ||=
+          reunion.updateAllReunion === 1;
+        habilitation.reunion.updateMySubordinatesReunion ||=
+          reunion.updateMySubordinatesReunion === 1;
+        habilitation.reunion.delete ||= reunion.delete === 1;
+        habilitation.reunion.deleteAllReunion ||=
+          reunion.deleteAllReunion === 1;
+        habilitation.reunion.deleteMySubordinatesReunion ||=
+          reunion.deleteMySubordinatesReunion === 1;
+        habilitation.reunion.manageMySubordinatesReunion ||=
+          reunion.manageMySubordinatesReunion === 1;
+        habilitation.reunion.manage ||= reunion.manage === 1;
+        habilitation.reunion.assign ||= reunion.assign === 1;
       }
-      if (transverse) {
-        habilitation.transverse.create ||= transverse.create === 1;
-        habilitation.transverse.update ||= transverse.update === 1;
-        habilitation.transverse.delete ||= transverse.delete === 1;
-      }
-      if (intercontract) {
-        habilitation.intercontract.create ||= intercontract.create === 1;
-        habilitation.intercontract.update ||= intercontract.update === 1;
-        habilitation.intercontract.delete ||= intercontract.delete === 1;
-      }
+     
     }
   );
   return habilitation;
