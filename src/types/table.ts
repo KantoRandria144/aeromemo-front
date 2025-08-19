@@ -12,5 +12,20 @@ export interface TableAccessProps {
       assignAccess: number;
       watchAllActivity: number;
     }[];
+    habilitationReunion: {
+      assign: number;
+      create: number;
+      update: number;
+      updateMySubordinatesReunion: number;
+      updateAllReunion: number;
+      delete: number;
+      deleteMySubordinatesReunion: number;
+      deleteAllReunion: number;
+      watchMyReunion: number;
+      watchAllReunion: number;
+      watchMySubordinatesReunion: number;
+      manage: number;
+      manageMySubordinatesReunion: number;
+    }[];
   }>;
 }

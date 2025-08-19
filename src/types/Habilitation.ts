@@ -4,7 +4,7 @@ export interface HabilitationDataProps {
   habilitationAdmins: HabilitationAdminInterface[];
 }
 
-export interface HabilitationProjectInterface {
+export interface HabilitationReunionInterface {
   create: number;
   update: number;
   delete: number;

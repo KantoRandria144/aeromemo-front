@@ -42,9 +42,12 @@ const AddAccessModal = ({
     delete: 0,
     deleteMySubordinatesReunion: 0,
     deleteAllReunion: 0,
-    watchMyReuniopn: 0,
-    
-  })
+    watchMyReunion: 0,
+    WatchMySubordinatesReunion: 0,
+    watchAllReunion: 0,
+    manage: 0,
+    manageMySubordinatesReunion: 0,
+  });
  
   const handleModif = (e: any) => {
     e.preventDefault();
@@ -205,6 +208,149 @@ const AddAccessModal = ({
                   }
                 />
               </div>
+            </div>
+            <div className="mb-4 pb-2 border-b-2 border-b-slate-400">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Accès Réunion
+                </label>
+                <div className="pl-3 space-y-1">
+                  <Checkbox
+                    label="Voir mes réunions"
+                    onStateCheckChange={(isChecked) =>
+                      isChecked
+                        ? handleCheckBoxChange("reunion", "watchMyReunion", 1)
+                        : handleCheckBoxChange("reunion", "watchMyReunion", 0)
+                    }
+                />
+                <Checkbox
+                  label="Voir les réunions de mes subordonné(e)s"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange(
+                          "reunion",
+                          "watchMySubordinatesReunion",
+                          1
+                        )
+                      : handleCheckBoxChange(
+                          "reunion",
+                          "watchMySubordinatesReunion",
+                          0
+                        )
+                  }
+                />
+                <Checkbox
+                  label="Voir tous les réunions"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange("reunion", "watchAllReunion", 1)
+                      : handleCheckBoxChange("reunion", "watchAllReunion", 0)
+                  }
+                />
+                <Checkbox
+                  label="Créer un nouveau réunion"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange("reunion", "create", 1)
+                      : handleCheckBoxChange("reunion", "create", 0)
+                  }
+                />
+                <Checkbox
+                  label="Modifier mes réunions"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange("reunion", "update", 1)
+                      : handleCheckBoxChange("reunion", "update", 0)
+                  }
+                />
+                <Checkbox
+                  label="Modifier les réunions de mes subordonné(e)s"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange(
+                          "reunion",
+                          "updateMySubordinatesReunion",
+                          1
+                        )
+                      : handleCheckBoxChange(
+                          "reunion",
+                          "updateMySubordinatesReunion",
+                          0
+                        )
+                  }
+                />
+                <Checkbox
+                  label="Modifier tout les réunions"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange("reunion", "updateAllReunion", 1)
+                      : handleCheckBoxChange("reunion", "updateAllReunion", 0)
+                  }
+                />
+                <Checkbox
+                  label="Gérer mes réunions"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange("reunion", "manage", 1)
+                      : handleCheckBoxChange("reunion", "manage", 0)
+                  }
+                />
+                <Checkbox
+                  label="Gérer les réunions de mes subordonné(e)s"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange(
+                          "reunion",
+                          "manageMySubordinatesReunion",
+                          1
+                        )
+                      : handleCheckBoxChange(
+                          "reunion",
+                          "manageMySubordinatesReunion",
+                          0
+                        )
+                  }
+                />
+                <Checkbox
+                  label="Archiver mes réunions"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange("reunion", "delete", 1)
+                      : handleCheckBoxChange("reunion", "delete", 0)
+                  }
+                />
+                <Checkbox
+                  label="Archiver les réunions de mes subordonné(e)s"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange(
+                          "reunion",
+                          "deleteMySubordinatesReunion",
+                          1
+                        )
+                      : handleCheckBoxChange(
+                          "reunion",
+                          "deleteMySubordinatesReunion",
+                          0
+                        )
+                  }
+                />
+                <Checkbox
+                  label="Archiver tous les réunions"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange("reunion", "deleteAllReunion", 1)
+                      : handleCheckBoxChange("reunion", "deleteAllReunion", 0)
+                  }
+                />
+                <Checkbox
+                  label="Assigner un réunion"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange("reunion", "assign", 1)
+                      : handleCheckBoxChange("reunion", "assign", 0)
+                  }
+                />
+                </div>
             </div>
             
 

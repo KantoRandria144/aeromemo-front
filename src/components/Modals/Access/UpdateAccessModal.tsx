@@ -43,7 +43,22 @@ const UpdateAccessModal = ({
     assignAccess: 0,
     watchAllActivity: 0,
   });
- 
+  const [reunionAccess, setReunionAccess] = useState({
+    id:"",
+    assign: 0,
+    create: 0,
+    update: 0,
+    updateMySubordinatesReunion: 0,
+    updateAllReunion: 0,
+    delete: 0,
+    deleteMySubordinatesReunion: 0,
+    deleteAllReunion: 0,
+    watchMyReunion: 0,
+    watchMySubordinatesReunion: 0,
+    watchAllReunion: 0,
+    manage: 0,
+    manageMySubordinatesReunion: 0,
+  });
 
   useEffect(() => {
     console.log(habilitationToModifData);
@@ -71,7 +86,37 @@ const UpdateAccessModal = ({
         watchAllActivity:
           habilitationToModifData?.habilitationAdmins?.[0]?.watchAllActivity,
       });
-     
+      setReunionAccess({
+        ...reunionAccess,
+        assign : habilitationToModifData?.habilitationReunion?.[0]?.assign,
+        create : habilitationToModifData?.habilitationReunion?.[0]?.create,
+        update : habilitationToModifData?.habilitationReunion?.[0]?.update,
+        updateMySubordinatesReunion : 
+          habilitationToModifData?.habilitationReunion?.[0]
+          ?.updateMySubordinatesReunion,
+        updateAllReunion : 
+          habilitationToModifData?.habilitationReunion?.[0]?.updateAllReunion,
+        delete: habilitationToModifData?.habilitationReunion?.[0]?.delete,
+        deleteMySubordinatesReunion : 
+          habilitationToModifData?.habilitationReunion?.[0]
+          ?.deleteMySubordinatesReunion,
+        deleteAllReunion : 
+          habilitationToModifData?.habilitationReunion?.[0]
+          ?.deleteAllReunion,
+        watchMyReunion : 
+          habilitationToModifData?.habilitationReunion?.[0]
+          ?.watchMyReunion,
+        watchMySubordinatesReunion : 
+          habilitationToModifData?.habilitationReunion?.[0]
+          ?.watchMySubordinatesReunion,
+        watchAllReunion : 
+          habilitationToModifData?.habilitationReunion?.[0]
+          ?.watchAllReunion,
+        manage : habilitationToModifData?.habilitationReunion?.[0]?.manage,
+        manageMySubordinatesReunion : 
+          habilitationToModifData?.habilitationReunion?.[0]
+          ?.manageMySubordinatesReunion,
+      })
     }
   }, [habilitationToModifData]);
 
@@ -89,7 +134,7 @@ const UpdateAccessModal = ({
     const habilitationData = {
       label: accessLabel.trim(),
       habilitationAdmins: [{ ...adminAccess }],
-      
+      habilitationReunions: [{...reunionAccess}],
     };
     console.log(habilitationData);
 
@@ -116,6 +161,9 @@ const UpdateAccessModal = ({
     switch (category) {
       case "admin":
         setAdminAccess((prev) => ({ ...prev, [key]: value }));
+        break;
+      case "reunion":
+        setReunionAccess((prev) => ({ ...prev, [key]: value}));
         break;
       default:
         break;
@@ -266,6 +314,196 @@ const UpdateAccessModal = ({
                     isChecked
                       ? handleCheckBoxChange("admin", "assignAccess", 1)
                       : handleCheckBoxChange("admin", "assignAccess", 0)
+                  }
+                />
+              </div>
+            </div>
+            <div className="mb-4 pb-2 border-b-2 border-b-slate-400">
+              <label className="block text-gray-700 text-sm font-bold mb-2">
+                Accès Réunion
+              </label>
+              <div className="pl-3 space-y-1">
+                <Checkbox
+                  active={
+                    habilitationToModifData?.habilitationReunion?.[0]
+                      ?.watchMyReunion
+                  }
+                  label="Voir mes réunions"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange("reunion", "watchMyReunion", 1)
+                      : handleCheckBoxChange("reunion", "watchMyReunion", 0)
+                  }
+                />
+                <Checkbox
+                  active={
+                    habilitationToModifData?.habilitationReunion?.[0]
+                      ?.watchMySubordinatesReunion
+                  }
+                  label="Voir les réunions de mes subordonné(e)s"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange(
+                          "reunion",
+                          "watchMySubordinatesReunion",
+                          1
+                        )
+                      : handleCheckBoxChange(
+                          "reunion",
+                          "watchMySubordinatesReunion",
+                          0
+                        )
+                  }
+                />
+                <Checkbox
+                  active={
+                    habilitationToModifData?.habilitationReunion?.[0]
+                      ?.watchAllReunion
+                  }
+                  label="Voir tous les réunions"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange("reunion", "watchAllReunion", 1)
+                      : handleCheckBoxChange("reunion", "watchAllReunion", 0)
+                  }
+                />
+                <Checkbox
+                  active={
+                    habilitationToModifData?.habilitationReunion?.[0]?.create
+                  }
+                  label="Créer un nouveau réunion"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange("reunion", "create", 1)
+                      : handleCheckBoxChange("reunion", "create", 0)
+                  }
+                />
+                <Checkbox
+                  active={
+                    habilitationToModifData?.habilitationReunion?.[0]?.update
+                  }
+                  label="Modifier mes réunions"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange("reunion", "update", 1)
+                      : handleCheckBoxChange("reunion", "update", 0)
+                  }
+                />
+                <Checkbox
+                  active={
+                    habilitationToModifData?.habilitationReunion?.[0]
+                      ?.updateMySubordinatesReunion
+                  }
+                  label="Modifier les réunions de mes subordonné(e)s"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange(
+                          "reunion",
+                          "updateMySubordinatesReunion",
+                          1
+                        )
+                      : handleCheckBoxChange(
+                          "reunion",
+                          "updateMySubordinatesReunion",
+                          0
+                        )
+                  }
+                />
+                <Checkbox
+                  active={
+                    habilitationToModifData?.habilitationReunion?.[0]
+                      ?.updateAllReunion
+                  }
+                  label="Modifier tous les réunions"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange("reunion", "updateAllReunion", 1)
+                      : handleCheckBoxChange("reunion", "updateAllReunion", 0)
+                  }
+                />
+                <Checkbox
+                  active={
+                    habilitationToModifData?.habilitationReunion?.[0]?.manage
+                  }
+                  label="Gérer mes projets"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange("reunion", "manage", 1)
+                      : handleCheckBoxChange("reunion", "manage", 0)
+                  }
+                />
+                <Checkbox
+                  active={
+                    habilitationToModifData?.habilitationReunion?.[0]
+                      ?.manageMySubordinatesReunion
+                  }
+                  label="Gérer les réunions de mes subordonné(e)s"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange(
+                          "reunion",
+                          "manageMySubordinatesReunion",
+                          1
+                        )
+                      : handleCheckBoxChange(
+                          "reunion",
+                          "manageMySubordinatesReunion",
+                          0
+                        )
+                  }
+                />
+                <Checkbox
+                  active={
+                    habilitationToModifData?.habilitationReunion?.[0]?.delete
+                  }
+                  label="Archiver mes réunions"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange("reunion", "delete", 1)
+                      : handleCheckBoxChange("reunion", "delete", 0)
+                  }
+                />
+                <Checkbox
+                  active={
+                    habilitationToModifData?.habilitationReunion?.[0]
+                      ?.deleteMySubordinatesReunion
+                  }
+                  label="Archiver les réunions de mes subordonné(e)s"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange(
+                          "reunion",
+                          "deleteMySubordinatesReunion",
+                          1
+                        )
+                      : handleCheckBoxChange(
+                          "reunion",
+                          "deleteMySubordinatesReunion",
+                          0
+                        )
+                  }
+                />
+                <Checkbox
+                  active={
+                    habilitationToModifData?.habilitationReunion?.[0]
+                      ?.deleteAllReunion
+                  }
+                  label="Archiver tous les réunions"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange("reunion", "deleteAllReunion", 1)
+                      : handleCheckBoxChange("reunion", "deleteAllReunion", 0)
+                  }
+                />
+                <Checkbox
+                  active={
+                    habilitationToModifData?.habilitationReunion?.[0]?.assign
+                  }
+                  label="Assigner un reunion"
+                  onStateCheckChange={(isChecked) =>
+                    isChecked
+                      ? handleCheckBoxChange("reunion", "assign", 1)
+                      : handleCheckBoxChange("reunion", "assign", 0)
                   }
                 />
               </div>
