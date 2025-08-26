@@ -27,3 +27,10 @@ export interface IDecodedToken {
   jti: string;
   exp: number;
 }
+
+export interface SimpleUser {
+  id: string;
+  name: string;
+  email: string;
+  department?: string;
+}

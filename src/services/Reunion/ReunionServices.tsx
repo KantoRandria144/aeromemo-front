@@ -14,9 +14,12 @@ export type SaveReunionPayload = {
     etat: number;               
     participantsObligatoires: string[];  
     participantsFacultatifs: string[];   
+    participantsObligatoiresEmails: string[];
+    participantsFacultatifsEmails: string[];
   };
 
 export type SaveReunionResponse = {
+    id: any;
     reunion: Reunion;
     outlookUrl: string;
 };
@@ -24,6 +27,20 @@ export type SaveReunionResponse = {
 export const saveReunion = async (payload: SaveReunionPayload): Promise<SaveReunionResponse> => {
     try {
       const res = await axios.post(`${endPoint}/api/reunion/save`, payload);
+
+       if (res.data.reunion) {
+        const reunion = res.data.reunion;
+        
+        // Ajouter les emails si disponibles dans le payload
+        if (payload.participantsObligatoiresEmails) {
+          reunion.participantsObligatoiresEmails = payload.participantsObligatoiresEmails;
+        }
+        
+        if (payload.participantsFacultatifsEmails) {
+          reunion.participantsFacultatifsEmails = payload.participantsFacultatifsEmails;
+        }
+      }
+
       return res.data;
     } catch (error) {
       console.error("Erreur lors de l’enregistrement de la réunion:", error);
@@ -33,15 +50,56 @@ export const saveReunion = async (payload: SaveReunionPayload): Promise<SaveReun
   };
 
 export const buildOutlookUrl = (reunion: Reunion): string => {
-    const startTime = `${reunion.dateDebut}T${reunion.heureDebut}`;
-    const endTime = `${reunion.dateFin}T${reunion.heureFin}`;
     
-    return `https://outlook.office.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent` +
-        `&startdt=${encodeURIComponent(startTime)}` +
-        `&enddt=${encodeURIComponent(endTime)}` +
-        `&subject=${encodeURIComponent(reunion.titre)}` +
-        `&location=${encodeURIComponent(reunion.emplacement || "")}` +
-        `&body=${encodeURIComponent(reunion.description || "")}`;
+    const {
+    titre,
+    description,
+    dateDebut,
+    dateFin,
+    heureDebut,
+    heureFin,
+    emplacement,
+    participantsObligatoires = [],
+    participantsFacultatifs = []
+  } = reunion;
+   
+ const startTime = `${dateDebut}T${heureDebut}`;
+    const endTime = `${dateFin}T${heureFin}`;
+    //const formatDate = (date: Date) => date.toISOString().replace(/-|:|\.\d+/g, '');
+    
+    // return `https://outlook.office.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent` +
+    //     `&startdt=${encodeURIComponent(startTime)}` +
+    //     `&enddt=${encodeURIComponent(endTime)}` +
+    //     `&subject=${encodeURIComponent(reunion.titre)}` +
+    //     `&location=${encodeURIComponent(reunion.emplacement || "")}` +
+    //     `&body=${encodeURIComponent(reunion.description || "")}`;
+    
+    let url = `https://outlook.office.com/calendar/0/deeplink/compose?subject=${encodeURIComponent(titre)}`;
+        url += `&body=${encodeURIComponent(description || "")}`;
+        url += `&location=${encodeURIComponent(emplacement || "")}`;
+        url += `&startdt=${encodeURIComponent(startTime)}`;
+        url += `&enddt=${encodeURIComponent(endTime)}`;
+    
+    // Extraire les emails des participants
+    const getEmails = (participants: any[]) => {
+        return participants
+        .filter(p => p && (p.email || (typeof p === 'string' && p.includes('@'))))
+        .map(p => typeof p === 'string' ? p : p.email);
+    };
+
+    const requiredEmails = getEmails(participantsObligatoires);
+    const optionalEmails = getEmails(participantsFacultatifs);
+    const allEmails = [...requiredEmails, ...optionalEmails];
+
+    
+    // Ajouter les participants à l'URL
+    if (allEmails.length > 0) {
+        // Outlook limite généralement à ~20 participants dans l'URL
+        const emailsToInclude = allEmails.slice(0, 20).join(';');
+        url += `&attendees=${encodeURIComponent(emailsToInclude)}`;
+    }
+
+    return url;
 };
 
 export const listAllReunion = async (): Promise<Reunion[]> => {

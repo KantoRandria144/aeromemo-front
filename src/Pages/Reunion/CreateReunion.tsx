@@ -7,6 +7,7 @@ import { Notyf } from "notyf";
 import "notyf/notyf.min.css";
 import { saveReunion , buildOutlookUrl} from "../../services/Reunion/ReunionServices";
 import axios from "axios";
+import { getThreeInitials } from "../../services/Function/UserFonctionService";
 
 // --- Salles disponibles (liste déroulante) ---
 const ROOMS = ["Salle R+1", "Salle R+3", "Salle R+4", "Salle DSI", "Salle CDOU", "Salle mezzanine"] as const;
@@ -14,13 +15,13 @@ const ROOMS = ["Salle R+1", "Salle R+3", "Salle R+4", "Salle DSI", "Salle CDOU",
 // --- Types & helpers ---
 type SimpleUser = { id: string; name: string; email: string; department?: string };
 
-const initialsOf = (fullName?: string) => {
-  if (!fullName) return "";
-  const parts = fullName.trim().split(/\s+/).filter(Boolean);
-  const first = parts[0]?.[0] ?? "";
-  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
-  return (first + last).toUpperCase();
-};
+// const initialsOf = (fullName?: string) => {
+//   if (!fullName) return "";
+//   const parts = fullName.trim().split(/\s+/).filter(Boolean);
+//   const first = parts[0]?.[0] ?? "";
+//   const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+//   return (first + last).toUpperCase();
+// };
 
 const ensureSeconds = (hhmm: string | null) => {
   const v = (hhmm || "").trim();
@@ -147,7 +148,7 @@ const ParticipantsAutocomplete: React.FC<ParticipantsAutocompleteProps> = ({
                 className="w-full flex items-center gap-3 p-2 text-left hover:bg-gray-50 dark:hover:bg-boxdark2"
               >
                 <div className="w-8 h-8 rounded-full bg-emerald-700 text-white flex items-center justify-center text-sm">
-                  {initialsOf(u.name)}
+                  {getThreeInitials(u.name)}
                 </div>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{u.name}</span>
@@ -163,10 +164,10 @@ const ParticipantsAutocomplete: React.FC<ParticipantsAutocompleteProps> = ({
         {selected.map((u) => (
           <div key={u.id} className="flex items-center bg-gray-100 dark:bg-boxdark rounded-full px-3 py-1">
             <div className="w-6 h-6 rounded-full bg-emerald-700 text-white flex items-center justify-center text-xs mr-2">
-              {initialsOf(u.name)}
+              {getThreeInitials(u.name)}
             </div>
             <span className="text-sm mr-2">
-              {u.name} {u.department ? `(${u.department})` : ""}
+              {u.name}
             </span>
             <button
               type="button"
@@ -197,8 +198,8 @@ const CreateReunion = () => {
   const [outlookUrl, setOutlookUrl] = useState<string | null>(null);
   const [showOutlookModal, setShowOutlookModal] = useState(false);
 
-  const requiredIds = requiredParticipants.map((u) => u.id);
-  const optionalIds = optionalParticipants.map((u) => u.id);
+  const requiredEmails = requiredParticipants.map(p => p.email);
+  const optionalEmails = optionalParticipants.map(p => p.email);
   const formRef = useRef<HTMLFormElement>(null);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -216,20 +217,8 @@ const CreateReunion = () => {
       heureFin: ensureSeconds(String(form.get("heureFin"))), // "HH:mm:ss"
       emplacement: String(form.get("emplacement") || "").trim(),
       etat: 1,
-      participantsObligatoires: (() => {
-        try {
-          return JSON.parse(String(form.get("participantsObligatoiresIds") || "[]"));
-        } catch {
-          return [];
-        }
-      })(),
-      participantsFacultatifs: (() => {
-        try {
-          return JSON.parse(String(form.get("participantsFacultatifsIds") || "[]"));
-        } catch {
-          return [];
-        }
-      })(),
+      participantsObligatoires: requiredEmails,
+      participantsFacultatifs: optionalEmails,
     };
 
     // validation rapide
@@ -351,7 +340,7 @@ const CreateReunion = () => {
                   setOptionalParticipants(nextOptional);
                   setRequiredParticipants(next);
                 }}
-                excludeIds={optionalIds}
+                excludeIds={optionalEmails}
                 hiddenFieldName="participantsObligatoiresIds"
               />
 
@@ -365,7 +354,7 @@ const CreateReunion = () => {
                   setRequiredParticipants(nextRequired);
                   setOptionalParticipants(next);
                 }}
-                excludeIds={requiredIds}
+                excludeIds={requiredEmails}
                 hiddenFieldName="participantsFacultatifsIds"
               />
 
