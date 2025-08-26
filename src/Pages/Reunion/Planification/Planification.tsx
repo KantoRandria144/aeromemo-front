@@ -88,6 +88,32 @@ const Planification = () => {
                     </div>
 
                     <div className="bg-white min-h-[80vh] pt-2 shadow-1 rounded-lg border border-zinc-200 dark:border-strokedark dark:bg-boxdark">
+                        <div className="flex justify-center">
+                            <nav className="flex overflow-x-auto items-center p-1 space-x-1 rtl:space-x-reverse text-sm text-gray-600 bg-gray-500/5 rounded-xl dark:bg-gray-500/20">
+                                <button
+                                    role="tab"
+                                    type="button"
+                                    className={`flex whitespace-nowrap items-center h-8 px-5 font-medium rounded-lg outline-none focus:ring-2 focus:green-600 focus:ring-inset ${activeTab === "all"
+                                        ? "text-green-600 shadow bg-white dark:text-white dark:bg-green-600"
+                                        : "hover:text-gray-800 focus:text-green-600 dark:text-gray-400 dark:hover:text-gray-300 dark:focus:text-gray-400"
+                                        }`}
+                                    onClick={() => setActiveTab("all")}
+                                >
+                                    Tous
+                                </button>
+                                <button
+                                    role="tab"
+                                    type="button"
+                                    className={`flex whitespace-nowrap items-center h-8 px-5 font-medium rounded-lg outline-none focus:ring-2 focus:ring-green-600 focus:ring-inset ${activeTab === "mine"
+                                        ? "text-green-600 shadow bg-white dark:text-white dark:bg-green-600"
+                                        : "hover:text-gray-800 focus:text-green-600 dark:text-gray-400 dark:hover:text-gray-300 dark:focus:text-gray-400"
+                                        }`}
+                                    onClick={() => setActiveTab("mine")}
+                                >
+                                    Mes réunions
+                                </button>
+                            </nav>
+                        </div>
                         <div className="flex gap-3 m-5 flex-wrap justify-between items-center">
                             <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 grid-cols-1 gap-3 w-full">
                                 <CustomSelect
@@ -140,34 +166,6 @@ const Planification = () => {
                                 </div>
                             </div>
                         </div>
-
-                        <div className="flex justify-center">
-                            <nav className="flex overflow-x-auto items-center p-1 space-x-1 rtl:space-x-reverse text-sm text-gray-600 bg-gray-500/5 rounded-xl dark:bg-gray-500/20">
-                                <button
-                                    role="tab"
-                                    type="button"
-                                    className={`flex whitespace-nowrap items-center h-8 px-5 font-medium rounded-lg outline-none focus:ring-2 focus:green-600 focus:ring-inset ${activeTab === "all"
-                                        ? "text-green-600 shadow bg-white dark:text-white dark:bg-green-600"
-                                        : "hover:text-gray-800 focus:text-green-600 dark:text-gray-400 dark:hover:text-gray-300 dark:focus:text-gray-400"
-                                        }`}
-                                    onClick={() => setActiveTab("all")}
-                                >
-                                    Tous
-                                </button>
-                                <button
-                                    role="tab"
-                                    type="button"
-                                    className={`flex whitespace-nowrap items-center h-8 px-5 font-medium rounded-lg outline-none focus:ring-2 focus:ring-green-600 focus:ring-inset ${activeTab === "mine"
-                                        ? "text-green-600 shadow bg-white dark:text-white dark:bg-green-600"
-                                        : "hover:text-gray-800 focus:text-green-600 dark:text-gray-400 dark:hover:text-gray-300 dark:focus:text-gray-400"
-                                        }`}
-                                    onClick={() => setActiveTab("mine")}
-                                >
-                                    Mes réunions
-                                </button>
-                            </nav>
-                        </div>
-
                         {/* Bulk actions when items are selected */}
                         <div
                             className={`mt-2 border-primaryGreen border dark:border-formStrokedark bg-white dark:bg-boxdark z-40 relative px-2 flex items-center justify-between transition-transform duration-200 ease-in-out transform ${
@@ -193,45 +191,7 @@ const Planification = () => {
                             </div>
                         </div>
 
-                        <div className="pb-4 items-center flex justify-between px-3 transition-opacity">
-                            <button className="rotate-180">
-                                <svg
-                                    width="40"
-                                    height="40"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        d="M6 12H18M18 12L13 7M18 12L13 17"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
-                            </button>
-                            <div className="text-xl text-center text-title font-semibold dark:text-whiten">
-                                {activeTab === "all" ? "Liste de tous les réunions" : "Liste de mes réunions"}
-                            </div>
-                            <button>
-                                <svg
-                                    width="40"
-                                    height="40"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        d="M6 12H18M18 12L13 7M18 12L13 17"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
-                            </button>
-                        </div>
-
-                        <div className="max-w-full mb-4 overflow-x-auto">
+                        <div className="max-w-full overflow-x-auto">
                             <table className="w-full text-sm hidden md:table table-auto">
                                 <thead className="pt-5 rounded-t-xl bg-primaryGreen dark:bg-darkgreen">
                                     <tr className="border border-stone-300 border-opacity-[0.1] border-r-0 border-l-0 text-white text-left">
@@ -409,6 +369,107 @@ const Planification = () => {
                                 </tbody>
                             </table>
                         </div>
+                        {/*  */}
+                        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 p-4">
+  {activeTab === "all" ? (
+    reunions && reunions.length > 0 ? (
+      reunions.map((reunion) => (
+        <div
+          key={reunion.id}
+          className="w-full rounded-xl bg-white dark:bg-green-900 shadow-md p-4 transition-colors duration-300"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {reunion.titre}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-300">
+                {new Date(reunion.dateDebut).toLocaleDateString()}
+              </p>
+            </div>
+            <span
+              className={`font-semibold rounded-md text-center py-1 px-2 text-xs w-fit ${
+                reunion.etat === "Planifié"
+                  ? "bg-green-100 border text-green-600 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700"
+                  : reunion.etat === "Annulé"
+                  ? "bg-red-100 border text-red-600 border-red-300 dark:bg-red-900 dark:text-red-300 dark:border-red-700"
+                  : "bg-gray-100 border text-gray-600 border-gray-300 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700"
+              }`}
+            >
+              {reunion.etat}
+            </span>
+          </div>
+
+          {/* Organisateur */}
+          <div className="mt-3">
+            <p className="text-sm text-gray-500 dark:text-gray-300">
+              Organisateur :
+            </p>
+            <p className="text-base font-medium text-gray-900 dark:text-white">
+              {/* À remplacer par reunion.organisateur si dispo */}
+              Jean Dupont
+            </p>
+          </div>
+
+          {/* Participants */}
+          <div className="mt-4 flex items-center justify-between">
+            <button className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
+              {/* {reunion.participants?.length || 0} Participants */}
+            </button>
+            <div className="flex -space-x-2">
+              {/* {(reunion.participants || [])
+                .slice(0, 3)
+                .map((p: any, idx: number) =>
+                  p.avatarUrl ? (
+                    <img
+                      key={idx}
+                      src={p.avatarUrl}
+                      alt={p.nom}
+                      className="w-8 h-8 rounded-full border-2 border-white dark:border-green-900"
+                    />
+                  ) : (
+                    <div
+                      key={idx}
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-white border-2 border-white dark:border-green-900"
+                    >
+                      {p.initials}
+                    </div>
+                  )
+                )} */}
+              {/* {reunion.participants &&
+                reunion.participants.length > 3 && (
+                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-300 text-xs font-semibold text-gray-700 dark:bg-gray-600 dark:text-white border-2 border-white dark:border-green-900">
+                    +{reunion.participants.length - 3}
+                  </div>
+                )} */}
+            </div>
+          </div>
+
+          {/* Bouton Voir */}
+          <div className="mt-4 text-right">
+            <button
+              onClick={() => navigate(`/aeromemo/reunion/${reunion.id}`)}
+              className="text-primaryGreen hover:underline dark:text-darkgreen"
+            >
+              Voir
+            </button>
+          </div>
+        </div>
+      ))
+    ) : (
+      <div className="col-span-full text-center py-6 text-gray-600 dark:text-gray-300">
+        Aucune réunion trouvée
+      </div>
+    )
+  ) : (
+    <div className="col-span-full text-center py-6 text-gray-600 dark:text-gray-300">
+      Aucune de vos réunions trouvée
+    </div>
+  )}
+</div>
+
+                        {/*  */}
                     </div>
                 </>
             </div>
