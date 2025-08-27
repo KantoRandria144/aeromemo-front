@@ -8,7 +8,18 @@ export interface CreateReunion {
     emplacement: string;
     participantsObligatoires?:string[];
     participantsFacultatifs?:string[];
+     participants?: ParticipantDTO[];
 }
+
+export type ParticipantDTO = {
+  id: string;
+  reunionId: string;
+  userId: string;
+  userEmail: string;
+  userName: string; // nom complet de l'utilisateur
+  type: string;
+  state: string;
+};
 
 export interface UpdateReunion {
     titre:string;

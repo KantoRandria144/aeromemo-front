@@ -7,6 +7,7 @@ import CustomInput from "../../../components/UIElements/Input/CustomInput";
 import DefaultLayout from "../../../components/layout/DefaultLayout";
 import { Reunion } from "../../../types/reunion";
 import { getAllReunions, listAllReunion } from "../../../services/Reunion/ReunionServices";
+import { getThreeInitials } from "../../../services/Function/UserFonctionService";
 
 const Planification = () => {
     const navigate = useNavigate();
@@ -21,6 +22,7 @@ const Planification = () => {
             try {
                 setLoading(true);
                 const data = await listAllReunion();
+                console.log("liste:",data);
                 setReunions(data);
             } catch (error) {
                 console.error("Erreur lors du chargement des réunions:", error);
@@ -53,6 +55,31 @@ const Planification = () => {
                 return [...prev, reunionId];
             }
         });
+    };
+
+    // Composant pour afficher un participant avec la couleur appropriée
+    const ParticipantAvatar = ({ nom, type, showTooltip = true }: { 
+        nom: string; 
+        type: 'obligatoire' | 'facultatif';
+        showTooltip?: boolean;
+    }) => {
+        const initials = getThreeInitials(nom);
+        const bgColor = type === 'obligatoire' 
+            ? 'bg-secondaryGreen' 
+            : 'bg-blue-400';
+        
+        return (
+            <div className="relative group -ml-2 first:ml-0 hover:z-99 cursor-pointer">
+                <p className={`text-slate-50 border relative ${bgColor} p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full dark:text-white dark:border-transparent`}>
+                    {initials}
+                </p>
+                {showTooltip && (
+                    <div className="absolute whitespace-nowrap text-xs hidden group-hover:block bg-white text-black p-2 border border-whiten shadow-5 rounded-md z-999 top-[-35px] left-1/2 transform -translate-x-1/2">
+                        <p>{nom} ({type === 'obligatoire' ? 'Obligatoire' : 'Facultatif'})</p>
+                    </div>
+                )}
+            </div>
+        );
     };
 
     return (
@@ -166,6 +193,7 @@ const Planification = () => {
                                 </div>
                             </div>
                         </div>
+                        
                         {/* Bulk actions when items are selected */}
                         <div
                             className={`mt-2 border-primaryGreen border dark:border-formStrokedark bg-white dark:bg-boxdark z-40 relative px-2 flex items-center justify-between transition-transform duration-200 ease-in-out transform ${
@@ -325,7 +353,47 @@ const Planification = () => {
                                                         {/* Organisateur */}
                                                     </td>
                                                     <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
-                                                        {/* Participants */}
+                                                        {/* Participants OBLIGATOIRES et FACULTATIFS */}
+                                                        <div className="flex -ml-2">
+                                                            {/* Participants obligatoires */}
+                                                            {reunion.participantsObligatoires?.slice(0, 3).map((nom, index) => (
+                                                                <ParticipantAvatar
+                                                                    key={index}
+                                                                    nom={nom}
+                                                                    type="obligatoire"
+                                                                />
+                                                            ))}
+                                                            
+                                                            {/* Participants facultatifs */}
+                                                            {reunion.participantsFacultatifs?.slice(0, 2).map((nom, index) => (
+                                                                <ParticipantAvatar
+                                                                    key={index}
+                                                                    nom={nom}
+                                                                    type="facultatif"
+                                                                />
+                                                            ))}
+                                                            
+                                                            {/* Indicateur du nombre total de participants */}
+                                                            {(reunion.participantsObligatoires?.length > 3 || reunion.participantsFacultatifs?.length > 2) && (
+                                                                <div className="relative group -ml-2 first:ml-0">
+                                                                    <p className="text-slate-50 border relative bg-gray-400 p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full dark:text-white dark:border-transparent">
+                                                                        +{((reunion.participantsObligatoires?.length - 3) > 0 ? reunion.participantsObligatoires.length - 3 : 0) + 
+                                                                          ((reunion.participantsFacultatifs?.length - 2) > 0 ? reunion.participantsFacultatifs.length - 2 : 0)}
+                                                                    </p>
+                                                                    <div className="absolute whitespace-nowrap text-xs hidden group-hover:block bg-white text-black p-2 border border-whiten shadow-5 rounded-md z-999 top-[-35px] left-1/2 transform -translate-x-1/2">
+                                                                        <div>
+                                                                            <p className="font-semibold">Participants supplémentaires:</p>
+                                                                            {reunion.participantsObligatoires?.length > 3 && (
+                                                                                <p>{reunion.participantsObligatoires.length - 3} obligatoire(s)</p>
+                                                                            )}
+                                                                            {reunion.participantsFacultatifs?.length > 2 && (
+                                                                                <p>{reunion.participantsFacultatifs.length - 2} facultatif(s)</p>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                     <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
                                                         <p
@@ -369,107 +437,118 @@ const Planification = () => {
                                 </tbody>
                             </table>
                         </div>
-                        {/*  */}
+                        
+                        {/* Version mobile */}
                         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 p-4">
-  {activeTab === "all" ? (
-    reunions && reunions.length > 0 ? (
-      reunions.map((reunion) => (
-        <div
-          key={reunion.id}
-          className="w-full rounded-xl bg-white dark:bg-green-900 shadow-md p-4 transition-colors duration-300"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {reunion.titre}
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-300">
-                {new Date(reunion.dateDebut).toLocaleDateString()}
-              </p>
-            </div>
-            <span
-              className={`font-semibold rounded-md text-center py-1 px-2 text-xs w-fit ${
-                reunion.etat === "Planifié"
-                  ? "bg-green-100 border text-green-600 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700"
-                  : reunion.etat === "Annulé"
-                  ? "bg-red-100 border text-red-600 border-red-300 dark:bg-red-900 dark:text-red-300 dark:border-red-700"
-                  : "bg-gray-100 border text-gray-600 border-gray-300 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700"
-              }`}
-            >
-              {reunion.etat}
-            </span>
-          </div>
+                            {activeTab === "all" ? (
+                                reunions && reunions.length > 0 ? (
+                                    reunions.map((reunion) => (
+                                        <div
+                                            key={reunion.id}
+                                            className="w-full rounded-xl bg-white dark:bg-green-900 shadow-md p-4 transition-colors duration-300"
+                                        >
+                                            {/* Header */}
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                                        {reunion.titre}
+                                                    </h3>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-300">
+                                                        {new Date(reunion.dateDebut).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                                <span
+                                                    className={`font-semibold rounded-md text-center py-1 px-2 text-xs w-fit ${
+                                                        reunion.etat === "Planifié"
+                                                            ? "bg-green-100 border text-green-600 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700"
+                                                            : reunion.etat === "Annulé"
+                                                            ? "bg-red-100 border text-red-600 border-red-300 dark:bg-red-900 dark:text-red-300 dark:border-red-700"
+                                                            : "bg-gray-100 border text-gray-600 border-gray-300 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700"
+                                                    }`}
+                                                >
+                                                    {reunion.etat}
+                                                </span>
+                                            </div>
 
-          {/* Organisateur */}
-          <div className="mt-3">
-            <p className="text-sm text-gray-500 dark:text-gray-300">
-              Organisateur :
-            </p>
-            <p className="text-base font-medium text-gray-900 dark:text-white">
-              {/* À remplacer par reunion.organisateur si dispo */}
-              Jean Dupont
-            </p>
-          </div>
+                                            {/* Organisateur */}
+                                            <div className="mt-3">
+                                                <p className="text-sm text-gray-500 dark:text-gray-300">
+                                                    Organisateur :
+                                                </p>
+                                                <p className="text-base font-medium text-gray-900 dark:text-white">
+                                                    Jean Dupont
+                                                </p>
+                                            </div>
 
-          {/* Participants */}
-          <div className="mt-4 flex items-center justify-between">
-            <button className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
-              {/* {reunion.participants?.length || 0} Participants */}
-            </button>
-            <div className="flex -space-x-2">
-              {/* {(reunion.participants || [])
-                .slice(0, 3)
-                .map((p: any, idx: number) =>
-                  p.avatarUrl ? (
-                    <img
-                      key={idx}
-                      src={p.avatarUrl}
-                      alt={p.nom}
-                      className="w-8 h-8 rounded-full border-2 border-white dark:border-green-900"
-                    />
-                  ) : (
-                    <div
-                      key={idx}
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-white border-2 border-white dark:border-green-900"
-                    >
-                      {p.initials}
-                    </div>
-                  )
-                )} */}
-              {/* {reunion.participants &&
-                reunion.participants.length > 3 && (
-                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-300 text-xs font-semibold text-gray-700 dark:bg-gray-600 dark:text-white border-2 border-white dark:border-green-900">
-                    +{reunion.participants.length - 3}
-                  </div>
-                )} */}
-            </div>
-          </div>
+                                            {/* Participants avec le nouveau style */}
+                                            <div className="mt-4">
+                                                <p className="text-sm text-gray-500 dark:text-gray-300 mb-2">
+                                                    Participants :
+                                                </p>
+                                                <div className="flex -ml-2">
+                                                    {/* Participants obligatoires */}
+                                                    {reunion.participantsObligatoires?.slice(0, 3).map((nom, index) => (
+                                                        <ParticipantAvatar
+                                                            key={index}
+                                                            nom={nom}
+                                                            type="obligatoire"
+                                                        />
+                                                    ))}
+                                                    
+                                                    {/* Participants facultatifs */}
+                                                    {reunion.participantsFacultatifs?.slice(0, 2).map((nom, index) => (
+                                                        <ParticipantAvatar
+                                                            key={index}
+                                                            nom={nom}
+                                                            type="facultatif"
+                                                        />
+                                                    ))}
+                                                    
+                                                    {/* Indicateur du nombre total de participants */}
+                                                    {(reunion.participantsObligatoires?.length > 3 || reunion.participantsFacultatifs?.length > 2) && (
+                                                        <div className="relative group -ml-2 first:ml-0">
+                                                            <p className="text-slate-50 border relative bg-gray-400 p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full dark:text-white dark:border-transparent">
+                                                                +{((reunion.participantsObligatoires?.length - 3) > 0 ? reunion.participantsObligatoires.length - 3 : 0) + 
+                                                                  ((reunion.participantsFacultatifs?.length - 2) > 0 ? reunion.participantsFacultatifs.length - 2 : 0)}
+                                                            </p>
+                                                            <div className="absolute whitespace-nowrap text-xs hidden group-hover:block bg-white text-black p-2 border border-whiten shadow-5 rounded-md z-999 top-[-35px] left-1/2 transform -translate-x-1/2">
+                                                                <div>
+                                                                    <p className="font-semibold">Participants supplémentaires:</p>
+                                                                    {reunion.participantsObligatoires?.length > 3 && (
+                                                                        <p>{reunion.participantsObligatoires.length - 3} obligatoire(s)</p>
+                                                                    )}
+                                                                    {reunion.participantsFacultatifs?.length > 2 && (
+                                                                        <p>{reunion.participantsFacultatifs.length - 2} facultatif(s)</p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
 
-          {/* Bouton Voir */}
-          <div className="mt-4 text-right">
-            <button
-              onClick={() => navigate(`/aeromemo/reunion/${reunion.id}`)}
-              className="text-primaryGreen hover:underline dark:text-darkgreen"
-            >
-              Voir
-            </button>
-          </div>
-        </div>
-      ))
-    ) : (
-      <div className="col-span-full text-center py-6 text-gray-600 dark:text-gray-300">
-        Aucune réunion trouvée
-      </div>
-    )
-  ) : (
-    <div className="col-span-full text-center py-6 text-gray-600 dark:text-gray-300">
-      Aucune de vos réunions trouvée
-    </div>
-  )}
-</div>
-
-                        {/*  */}
+                                            {/* Bouton Voir */}
+                                            <div className="mt-4 text-right">
+                                                <button
+                                                    onClick={() => navigate(`/aeromemo/reunion/${reunion.id}`)}
+                                                    className="text-primaryGreen hover:underline dark:text-darkgreen"
+                                                >
+                                                    Voir
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="col-span-full text-center py-6 text-gray-600 dark:text-gray-300">
+                                        Aucune réunion trouvée
+                                    </div>
+                                )
+                            ) : (
+                                <div className="col-span-full text-center py-6 text-gray-600 dark:text-gray-300">
+                                    Aucune de vos réunions trouvée
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </>
             </div>
