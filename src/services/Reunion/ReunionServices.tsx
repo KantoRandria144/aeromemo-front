@@ -11,11 +11,9 @@ export type SaveReunionPayload = {
     heureDebut: string;         
     heureFin: string;           
     emplacement: string;
-    etat: number;               
-    participantsObligatoires: string[];  
-    participantsFacultatifs: string[];   
-    participantsObligatoiresEmails: string[];
-    participantsFacultatifsEmails: string[];
+    etat: number;
+    participantsObligatoires: string[];  // seulement les emails
+    participantsFacultatifs: string[]; 
   };
 
 export type SaveReunionResponse = {
@@ -25,28 +23,53 @@ export type SaveReunionResponse = {
 };
 
 export const saveReunion = async (payload: SaveReunionPayload): Promise<SaveReunionResponse> => {
+    
     try {
-      const res = await axios.post(`${endPoint}/api/reunion/save`, payload);
+        console.log("Payload envoyé au serveur:", JSON.stringify(payload,null,2));
 
-       if (res.data.reunion) {
-        const reunion = res.data.reunion;
-        
-        // Ajouter les emails si disponibles dans le payload
-        if (payload.participantsObligatoiresEmails) {
-          reunion.participantsObligatoiresEmails = payload.participantsObligatoiresEmails;
-        }
-        
-        if (payload.participantsFacultatifsEmails) {
-          reunion.participantsFacultatifsEmails = payload.participantsFacultatifsEmails;
-        }
-      }
+        const res = await axios.post(`${endPoint}/api/reunion/save`,payload, {
+            headers: {
+                'Content-type': 'application/json'
+            }
+        });
 
-      return res.data;
+        console.log("Réponse au serveur:", res.data);
+        return res.data;
     } catch (error) {
-      console.error("Erreur lors de l’enregistrement de la réunion:", error);
-      
-      throw error;
+        if (axios.isAxiosError(error)) {
+            console.error("Erreur détaillée:", error.response?.data);
+            console.error("Status:", error.response?.status);
+            console.error("Headers:", error.response?.headers);
+        }
+        throw error;
     }
+    
+    // try {
+    //   const res = await axios.post(`${endPoint}/api/reunion/save`, payload);
+
+    //   if(res.data.reunion) {
+    //     return res.data.reunion;
+    //   }
+
+    // //    if (res.data.reunion) {
+    // //     const reunion = res.data.reunion;
+        
+    // //     // Ajouter les emails si disponibles dans le payload
+    // //     if (payload.participantsObligatoiresEmails) {
+    // //       reunion.participantsObligatoiresEmails = payload.participantsObligatoiresEmails;
+    // //     }
+        
+    // //     if (payload.participantsFacultatifsEmails) {
+    // //       reunion.participantsFacultatifsEmails = payload.participantsFacultatifsEmails;
+    // //     }
+    // //   }
+
+    //   return res.data;
+    // } catch (error) {
+    //   console.error("Erreur lors de l’enregistrement de la réunion:", error);
+      
+    //   throw error;
+    // }
   };
 
 export const buildOutlookUrl = (reunion: Reunion): string => {
@@ -63,8 +86,24 @@ export const buildOutlookUrl = (reunion: Reunion): string => {
     participantsFacultatifs = []
   } = reunion;
    
- const startTime = `${dateDebut}T${heureDebut}`;
-    const endTime = `${dateFin}T${heureFin}`;
+  // Fonction utilitaire pour forcer un format avec timezone
+function ensureTimeWithTimezone(time: string): string {
+  // Si déjà au format HH:mm:ssZ, on ne touche pas
+  if (time.match(/^\d{2}:\d{2}(:\d{2})?(Z|[+-]\d{2}:\d{2})$/)) {
+    return time;
+  }
+
+  // Si au format HH:mm → on ajoute secondes et UTC par défaut
+  if (time.match(/^\d{2}:\d{2}$/)) {
+    return `${time}:00Z`;
+  }
+
+  return time; // fallback si autre format
+}
+
+const startTime = `${dateDebut}T${ensureTimeWithTimezone( heureDebut)}`;
+const endTime   = `${dateFin}T${ensureTimeWithTimezone( heureFin)}`;
+
     //const formatDate = (date: Date) => date.toISOString().replace(/-|:|\.\d+/g, '');
     
     // return `https://outlook.office.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent` +
@@ -79,6 +118,7 @@ export const buildOutlookUrl = (reunion: Reunion): string => {
         url += `&location=${encodeURIComponent(emplacement || "")}`;
         url += `&startdt=${encodeURIComponent(startTime)}`;
         url += `&enddt=${encodeURIComponent(endTime)}`;
+        
     
     // Extraire les emails des participants
     const getEmails = (participants: any[]) => {
@@ -89,14 +129,21 @@ export const buildOutlookUrl = (reunion: Reunion): string => {
 
     const requiredEmails = getEmails(participantsObligatoires);
     const optionalEmails = getEmails(participantsFacultatifs);
-    const allEmails = [...requiredEmails, ...optionalEmails];
+    //const allEmails = [...requiredEmails, ...optionalEmails];
 
     
-    // Ajouter les participants à l'URL
-    if (allEmails.length > 0) {
-        // Outlook limite généralement à ~20 participants dans l'URL
-        const emailsToInclude = allEmails.slice(0, 20).join(';');
-        url += `&attendees=${encodeURIComponent(emailsToInclude)}`;
+    // Ajouter les participants obligatoires (champ "to")
+    if (requiredEmails.length > 0) {
+        const emailsToInclude = requiredEmails.join(';');
+        url += `&to=${encodeURIComponent(emailsToInclude)}`;
+    }
+
+    // Ajouter les participants facultatifs (champ "cc")
+   
+    if (optionalEmails.length > 0) {
+        const emailsToInclude = optionalEmails.join(';');
+         console.log("optionalEmails.length =", optionalEmails.length);
+        url += `&cc=${encodeURIComponent(emailsToInclude)}`;
     }
 
     return url;

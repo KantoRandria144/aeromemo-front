@@ -9,27 +9,16 @@ import { saveReunion , buildOutlookUrl} from "../../services/Reunion/ReunionServ
 import axios from "axios";
 import { getThreeInitials } from "../../services/Function/UserFonctionService";
 
-// --- Salles disponibles (liste déroulante) ---
 const ROOMS = ["Salle R+1", "Salle R+3", "Salle R+4", "Salle DSI", "Salle CDOU", "Salle mezzanine"] as const;
 
-// --- Types & helpers ---
 type SimpleUser = { id: string; name: string; email: string; department?: string };
-
-// const initialsOf = (fullName?: string) => {
-//   if (!fullName) return "";
-//   const parts = fullName.trim().split(/\s+/).filter(Boolean);
-//   const first = parts[0]?.[0] ?? "";
-//   const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
-//   return (first + last).toUpperCase();
-// };
 
 const ensureSeconds = (hhmm: string | null) => {
   const v = (hhmm || "").trim();
   if (!v) return "";
-  return v.length === 5 ? `${v}:00` : v; // "09:00" -> "09:00:00"
+  return v.length === 5 ? `${v}:00` : v;
 };
 
-// --- Autocomplete contrôlé---
 type ParticipantsAutocompleteProps = {
   label: string;
   requiredLabel?: boolean;
@@ -84,7 +73,6 @@ const ParticipantsAutocomplete: React.FC<ParticipantsAutocompleteProps> = ({
                   (u.email || "").toLowerCase().includes(v)
               );
 
-        // exclure: déjà sélectionnés + IDs passés en props
         list = list.filter(
           (u) => !selected.some((s) => s.id === u.id) && !(excludeIds || []).includes(u.id)
         );
@@ -181,26 +169,34 @@ const ParticipantsAutocomplete: React.FC<ParticipantsAutocompleteProps> = ({
         ))}
       </div>
 
-      {/* IDs en JSON à soumettre avec le formulaire */}
       <input type="hidden" name={hiddenFieldName} value={JSON.stringify(selected.map((u) => u.id))} />
     </div>
   );
 };
 
-// --- Page ---
 const notyf = new Notyf({ position: { x: "center", y: "top" } });
 
 const CreateReunion = () => {
-  // exclusion mutuelle
   const [requiredParticipants, setRequiredParticipants] = useState<SimpleUser[]>([]);
   const [optionalParticipants, setOptionalParticipants] = useState<SimpleUser[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [outlookUrl, setOutlookUrl] = useState<string | null>(null);
   const [showOutlookModal, setShowOutlookModal] = useState(false);
-
-  const requiredEmails = requiredParticipants.map(p => p.email);
-  const optionalEmails = optionalParticipants.map(p => p.email);
   const formRef = useRef<HTMLFormElement>(null);
+
+  const ensureTimeWithTimezone = (dateStr: string, timeStr: string) => {
+    if (!dateStr ||!timeStr) return "";
+
+    const localDate = new Date(`${dateStr}T${timeStr}`);
+
+    const timezoneOffset = -localDate.getTimezoneOffset();
+    const sign = timezoneOffset >=0 ? '+' : '-';
+    const pad = (num: number) => Math.floor(Math.abs(num)).toString().padStart(2, '0');
+    const hours = pad(timezoneOffset / 60);
+    const minutes = pad(timezoneOffset % 60);
+
+    return `${timeStr}:00${sign}${hours}:${minutes}`;
+  };
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -208,21 +204,41 @@ const CreateReunion = () => {
 
     const form = new FormData(e.currentTarget);
 
+  const titre = String(form.get("titre") || "").trim();
+  const description = String(form.get("description") || "").trim();
+  const dateDebut = String(form.get("dateDebut") || "").trim();
+  const dateFin = String(form.get("dateFin") || "").trim();
+  const heureDebut = String(form.get("heureDebut") || "").trim();
+  const heureFin = String(form.get("heureFin") || "").trim();
+  const emplacement = String(form.get("emplacement") || "").trim();
+
+    // Préparer les données des participants
+    const requiredIds = requiredParticipants.map(p => p.id);
+    const requiredEmails = requiredParticipants.map(p => p.email);
+    const optionalIds = optionalParticipants.map(p => p.id);
+    const optionalEmails = optionalParticipants.map(p => p.email);
+
+    const heureDebutWithTz = ensureTimeWithTimezone(dateDebut, heureDebut);
+    const heureFinWithTz = ensureTimeWithTimezone(dateFin, heureFin);
+
     const payload = {
-      titre: String(form.get("titre") || "").trim(),
-      description: String(form.get("description") || "").trim(),
-      dateDebut: String(form.get("dateDebut") || "").trim(), 
-      dateFin: String(form.get("dateFin") || "").trim(), 
-      heureDebut: ensureSeconds(String(form.get("heureDebut"))),
-      heureFin: ensureSeconds(String(form.get("heureFin"))), // "HH:mm:ss"
-      emplacement: String(form.get("emplacement") || "").trim(),
+      titre,
+      description,
+      dateDebut,
+      dateFin,
+      heureDebut: ensureSeconds(heureDebut),
+      heureFin: ensureSeconds(heureFin),
+      emplacement,
       etat: 1,
-      participantsObligatoires: requiredEmails,
-      participantsFacultatifs: optionalEmails,
+      participantsObligatoires: requiredParticipants.map(p => p.email),
+      participantsFacultatifs: optionalParticipants.map(p => p.email),
     };
 
-    // validation rapide
-    if (!payload.titre || !payload.description || !payload.dateDebut || !payload.heureDebut || !payload.heureFin || !payload.emplacement) {
+    console.log("Payload préparé:", JSON.stringify(payload, null, 2));
+
+    // Validation
+    if (!payload.titre || !payload.description || !payload.dateDebut || 
+        !payload.heureDebut || !payload.heureFin || !payload.emplacement) {
       notyf.dismissAll();
       notyf.error("Merci de remplir tous les champs obligatoires.");
       return;
@@ -230,7 +246,6 @@ const CreateReunion = () => {
 
     setSubmitting(true);
 
-    
     try {
       const response = await saveReunion(payload);
       const url = response.outlookUrl || buildOutlookUrl(response.reunion);
@@ -247,6 +262,7 @@ const CreateReunion = () => {
       
       if (axios.isAxiosError(error)) {
         msg = error.response?.data?.message || 
+              error.response?.data?.error ||
               error.message || 
               msg;
       } else if (error instanceof Error) {
@@ -257,8 +273,6 @@ const CreateReunion = () => {
     } finally {
       setSubmitting(false);
     }
-    // Option: redirection après succès
-    // setTimeout(() => navigate("/aeromemo/planification"), 800);
   };
 
   return (
@@ -290,7 +304,6 @@ const CreateReunion = () => {
                 <CustomInput type="time" name="heureFin" label="Heure de fin" defaultValue="" rounded="medium" required />
               </div>
 
-              {/* Emplacement: liste déroulante */}
               <div>
                 <label htmlFor="emplacement" className="mb-1 block font-semibold text-sm text-black dark:text-white">
                   Emplacement
@@ -313,7 +326,6 @@ const CreateReunion = () => {
                 </select>
               </div>
 
-              {/* Description */}
               <div>
                 <label htmlFor="description" className="mb-1 block font-semibold text-sm text-black dark:text-white">
                   Description
@@ -329,7 +341,6 @@ const CreateReunion = () => {
                 />
               </div>
 
-              {/* Participants obligatoires */}
               <ParticipantsAutocomplete
                 label="Participants obligatoires"
                 requiredLabel
@@ -340,11 +351,10 @@ const CreateReunion = () => {
                   setOptionalParticipants(nextOptional);
                   setRequiredParticipants(next);
                 }}
-                excludeIds={optionalEmails}
+                excludeIds={optionalParticipants.map(u => u.id)}
                 hiddenFieldName="participantsObligatoiresIds"
               />
 
-              {/* Participants facultatifs */}
               <ParticipantsAutocomplete
                 label="Participants facultatifs"
                 placeholder="Tapez pour rechercher (ex : a...)"
@@ -354,11 +364,10 @@ const CreateReunion = () => {
                   setRequiredParticipants(nextRequired);
                   setOptionalParticipants(next);
                 }}
-                excludeIds={requiredEmails}
+                excludeIds={requiredParticipants.map(u => u.id)}
                 hiddenFieldName="participantsFacultatifsIds"
               />
 
-              {/* Actions */}
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
@@ -380,6 +389,7 @@ const CreateReunion = () => {
             </form>
           </div>
         </div>
+
         {showOutlookModal && outlookUrl && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-boxdark rounded-lg p-6 max-w-md w-full">
@@ -398,7 +408,7 @@ const CreateReunion = () => {
                     window.open(outlookUrl, '_blank');
                     setShowOutlookModal(false);
                   }}
-                  className="px-4 py-2 border rounded-md dark:border-form-strokedark dark:bg-boxdark-2 dark:text-white"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
                   Ouvrir Outlook
                 </button>
