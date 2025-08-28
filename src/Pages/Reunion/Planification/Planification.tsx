@@ -6,7 +6,7 @@ import CustomInputUserSpecifiedSearch from "../../../components/UIElements/Input
 import CustomInput from "../../../components/UIElements/Input/CustomInput";
 import DefaultLayout from "../../../components/layout/DefaultLayout";
 import { Reunion } from "../../../types/reunion";
-import { getAllReunions, listAllReunion } from "../../../services/Reunion/ReunionServices";
+import { getAllReunions, getMyReunions, listAllReunion } from "../../../services/Reunion/ReunionServices";
 import { getThreeInitials } from "../../../services/Function/UserFonctionService";
 
 const Planification = () => {
@@ -17,22 +17,29 @@ const Planification = () => {
     const [selectedReunions, setSelectedReunions] = useState<string[]>([]);
     const [isAllSelected, setIsAllSelected] = useState(false);
 
-    useEffect(() => {
-        const fetchReunions = async () => {
-            try {
-                setLoading(true);
-                const data = await listAllReunion();
-                console.log("liste:",data);
-                setReunions(data);
-            } catch (error) {
-                console.error("Erreur lors du chargement des réunions:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+   useEffect(() => {
+  const fetchReunions = async () => {
+    try {
+      setLoading(true);
+      let data: Reunion[] = [];
 
-        fetchReunions();
-    }, []);
+      if (activeTab === "all") {
+        data = await listAllReunion();
+      } else if (activeTab === "mine") {
+        data = await getMyReunions();
+      }
+
+      setReunions(data);
+    } catch (error) {
+      console.error("Erreur lors du chargement des réunions:", error);
+      setReunions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchReunions();
+}, [activeTab]); 
 
     const handleSelectAllReunions = () => {
         if (reunions) {
@@ -309,132 +316,187 @@ const Planification = () => {
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    {activeTab === "all" ? (
-                                       reunions && reunions.length > 0 ? (
-                                            reunions.map((reunion) => (
-                                                <tr key={reunion.id} className="border-b hover:bg-gray-50 dark:hover:bg-boxdark2">
-                                                    <td className="pl-2 border-b border-[#eee] dark:border-strokedark">
-                                                        <button
-                                                            className="cursor-pointer border w-5 h-5"
-                                                            onClick={() => handleSelectReunion(reunion.id)}
-                                                        >
-                                                            <svg
-                                                                width="18"
-                                                                height="17"
-                                                                viewBox="0 0 24 24"
-                                                                fill="none"
-                                                                xmlns="http://www.w3.org/2000/svg"
-                                                                className={`${
-                                                                    selectedReunions.includes(reunion.id)
-                                                                        ? "visible"
-                                                                        : "invisible"
-                                                                }`}
-                                                            >
-                                                                <path
-                                                                    d="M4 12.6111L8.92308 17.5L20 6.5"
-                                                                    className="stroke-black-2 dark:stroke-whiten"
-                                                                    strokeWidth="2"
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                />
-                                                            </svg>
-                                                        </button>
-                                                    </td>
-                                                    <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
-                                                        {new Date(reunion.dateDebut).toLocaleDateString()}
-                                                    </td>
-                                                    <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
-                                                        <p className="text-black text-justify dark:text-white font-bold">
-                                                            {reunion.titre}
-                                                        </p>
-                                                    </td>
-                                                    <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
-                                                        {/* Organisateur */}
-                                                    </td>
-                                                    <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
-                                                        {/* Participants OBLIGATOIRES et FACULTATIFS */}
-                                                        <div className="flex -ml-2">
-                                                            {/* Participants obligatoires */}
-                                                            {reunion.participantsObligatoires?.slice(0, 3).map((nom, index) => (
-                                                                <ParticipantAvatar
-                                                                    key={index}
-                                                                    nom={nom}
-                                                                    type="obligatoire"
-                                                                />
-                                                            ))}
-                                                            
-                                                            {/* Participants facultatifs */}
-                                                            {reunion.participantsFacultatifs?.slice(0, 2).map((nom, index) => (
-                                                                <ParticipantAvatar
-                                                                    key={index}
-                                                                    nom={nom}
-                                                                    type="facultatif"
-                                                                />
-                                                            ))}
-                                                            
-                                                            {/* Indicateur du nombre total de participants */}
-                                                            {(reunion.participantsObligatoires?.length > 3 || reunion.participantsFacultatifs?.length > 2) && (
-                                                                <div className="relative group -ml-2 first:ml-0">
-                                                                    <p className="text-slate-50 border relative bg-gray-400 p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full dark:text-white dark:border-transparent">
-                                                                        +{((reunion.participantsObligatoires?.length - 3) > 0 ? reunion.participantsObligatoires.length - 3 : 0) + 
-                                                                          ((reunion.participantsFacultatifs?.length - 2) > 0 ? reunion.participantsFacultatifs.length - 2 : 0)}
-                                                                    </p>
-                                                                    <div className="absolute whitespace-nowrap text-xs hidden group-hover:block bg-white text-black p-2 border border-whiten shadow-5 rounded-md z-999 top-[-35px] left-1/2 transform -translate-x-1/2">
-                                                                        <div>
-                                                                            <p className="font-semibold">Participants supplémentaires:</p>
-                                                                            {reunion.participantsObligatoires?.length > 3 && (
-                                                                                <p>{reunion.participantsObligatoires.length - 3} obligatoire(s)</p>
-                                                                            )}
-                                                                            {reunion.participantsFacultatifs?.length > 2 && (
-                                                                                <p>{reunion.participantsFacultatifs.length - 2} facultatif(s)</p>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
-                                                        <p
-                                                            className={`font-semibold rounded-md text-center py-1 px-2 text-xs w-fit ${
-                                                                reunion.etat === "Planifié"
-                                                                    ? "bg-green-100 border text-green-600 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700"
-                                                                    : reunion.etat === "Annulé"
-                                                                    ? "bg-red-100 border text-red-600 border-red-300 dark:bg-red-900 dark:text-red-300 dark:border-red-700"
-                                                                    : "bg-gray-100 border text-gray-600 border-gray-300 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700"
-                                                            }`}
-                                                        >
-                                                            {reunion.etat}
-                                                        </p>
-                                                    </td>
-                                                    <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
-                                                        <button
-                                                            onClick={() =>
-                                                                navigate(`/aeromemo/reunion/${reunion.id}`)
-                                                            }
-                                                            className="text-primaryGreen hover:underline dark:text-darkgreen"
-                                                        >
-                                                            Voir
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan={7} className="text-center py-4 border-b border-[#eee] dark:border-strokedark">
-                                                    Aucune réunion trouvée
-                                                </td>
-                                            </tr>
-                                        )
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={7} className="text-center py-4 border-b border-[#eee] dark:border-strokedark">
-                                                Aucune de vos réunions trouvée
-                                            </td>
+                               <tbody>
+                                {activeTab === "all" ? (
+                                    reunions && reunions.length > 0 ? (
+                                    reunions.map((reunion) => (
+                                        <tr key={reunion.id} className="border-b hover:bg-gray-50 dark:hover:bg-boxdark2">
+                                        <td className="pl-2 border-b border-[#eee] dark:border-strokedark">
+                                            <button
+                                            className="cursor-pointer border w-5 h-5"
+                                            onClick={() => handleSelectReunion(reunion.id)}
+                                            >
+                                            <svg
+                                                width="18"
+                                                height="17"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className={`${
+                                                selectedReunions.includes(reunion.id) ? "visible" : "invisible"
+                                                }`}
+                                            >
+                                                <path
+                                                d="M4 12.6111L8.92308 17.5L20 6.5"
+                                                className="stroke-black-2 dark:stroke-whiten"
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                />
+                                            </svg>
+                                            </button>
+                                        </td>
+                                        <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
+                                            {new Date(reunion.dateDebut).toLocaleDateString()}
+                                        </td>
+                                        <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
+                                            <p className="text-black text-justify dark:text-white font-bold">{reunion.titre}</p>
+                                        </td>
+                                        <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
+                                            {/* Organisateur */}
+                                        </td>
+                                        <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
+                                            {/* Participants OBLIGATOIRES et FACULTATIFS */}
+                                            <div className="flex -ml-2">
+                                            {reunion.participantsObligatoires?.slice(0, 3).map((nom, index) => (
+                                                <ParticipantAvatar key={index} nom={nom} type="obligatoire" />
+                                            ))}
+
+                                            {reunion.participantsFacultatifs?.slice(0, 2).map((nom, index) => (
+                                                <ParticipantAvatar key={index} nom={nom} type="facultatif" />
+                                            ))}
+
+                                            {(reunion.participantsObligatoires?.length > 3 ||
+                                                reunion.participantsFacultatifs?.length > 2) && (
+                                                <div className="relative group -ml-2 first:ml-0">
+                                                <p className="text-slate-50 border relative bg-gray-400 p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full dark:text-white dark:border-transparent">
+                                                    +
+                                                    {(reunion.participantsObligatoires?.length > 3
+                                                    ? reunion.participantsObligatoires.length - 3
+                                                    : 0) +
+                                                    (reunion.participantsFacultatifs?.length > 2
+                                                        ? reunion.participantsFacultatifs.length - 2
+                                                        : 0)}
+                                                </p>
+                                                <div className="absolute whitespace-nowrap text-xs hidden group-hover:block bg-white text-black p-2 border border-whiten shadow-5 rounded-md z-999 top-[-35px] left-1/2 transform -translate-x-1/2">
+                                                    <div>
+                                                    <p className="font-semibold">Participants supplémentaires:</p>
+                                                    {reunion.participantsObligatoires?.length > 3 && (
+                                                        <p>{reunion.participantsObligatoires.length - 3} obligatoire(s)</p>
+                                                    )}
+                                                    {reunion.participantsFacultatifs?.length > 2 && (
+                                                        <p>{reunion.participantsFacultatifs.length - 2} facultatif(s)</p>
+                                                    )}
+                                                    </div>
+                                                </div>
+                                                </div>
+                                            )}
+                                            </div>
+                                        </td>
+                                        <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
+                                            <p
+                                            className={`font-semibold rounded-md text-center py-1 px-2 text-xs w-fit ${
+                                                reunion.etat === "Planifié"
+                                                ? "bg-green-100 border text-green-600 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700"
+                                                : reunion.etat === "Annulé"
+                                                ? "bg-red-100 border text-red-600 border-red-300 dark:bg-red-900 dark:text-red-300 dark:border-red-700"
+                                                : "bg-gray-100 border text-gray-600 border-gray-300 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700"
+                                            }`}
+                                            >
+                                            {reunion.etat}
+                                            </p>
+                                        </td>
+                                        <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
+                                            <button
+                                            onClick={() => navigate(`/aeromemo/reunion/${reunion.id}`)}
+                                            className="text-primaryGreen hover:underline dark:text-darkgreen"
+                                            >
+                                            Voir
+                                            </button>
+                                        </td>
                                         </tr>
-                                    )}
+                                    ))
+                                    ) : (
+                                    <tr>
+                                        <td
+                                        colSpan={7}
+                                        className="text-center py-4 border-b border-[#eee] dark:border-strokedark"
+                                        >
+                                        Aucune réunion trouvée
+                                        </td>
+                                    </tr>
+                                    )
+                                ) : activeTab === "mine" ? (
+                                    reunions && reunions.length > 0 ? (
+                                    reunions.map((reunion) => (
+                                        <tr key={reunion.id} className="border-b hover:bg-gray-50 dark:hover:bg-boxdark2">
+                                        <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark">
+                                            {new Date(reunion.dateDebut).toLocaleDateString()}
+                                        </td>
+                                        <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark">
+                                            {reunion.titre}
+                                        </td>
+                                        <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark">
+                                            {/* Participants comme dans "all" */}
+                                            <div className="flex -ml-2">
+                                            {reunion.participantsObligatoires?.slice(0, 3).map((nom, index) => (
+                                                <ParticipantAvatar key={index} nom={nom} type="obligatoire" />
+                                            ))}
+
+                                            {reunion.participantsFacultatifs?.slice(0, 2).map((nom, index) => (
+                                                <ParticipantAvatar key={index} nom={nom} type="facultatif" />
+                                            ))}
+
+                                            {(reunion.participantsObligatoires?.length > 3 ||
+                                                reunion.participantsFacultatifs?.length > 2) && (
+                                                <div className="relative group -ml-2 first:ml-0">
+                                                <p className="text-slate-50 border relative bg-gray-400 p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full dark:text-white dark:border-transparent">
+                                                    +
+                                                    {(reunion.participantsObligatoires?.length > 3
+                                                    ? reunion.participantsObligatoires.length - 3
+                                                    : 0) +
+                                                    (reunion.participantsFacultatifs?.length > 2
+                                                        ? reunion.participantsFacultatifs.length - 2
+                                                        : 0)}
+                                                </p>
+                                                <div className="absolute whitespace-nowrap text-xs hidden group-hover:block bg-white text-black p-2 border border-whiten shadow-5 rounded-md z-999 top-[-35px] left-1/2 transform -translate-x-1/2">
+                                                    <div>
+                                                    <p className="font-semibold">Participants supplémentaires:</p>
+                                                    {reunion.participantsObligatoires?.length > 3 && (
+                                                        <p>{reunion.participantsObligatoires.length - 3} obligatoire(s)</p>
+                                                    )}
+                                                    {reunion.participantsFacultatifs?.length > 2 && (
+                                                        <p>{reunion.participantsFacultatifs.length - 2} facultatif(s)</p>
+                                                    )}
+                                                    </div>
+                                                </div>
+                                                </div>
+                                            )}
+                                            </div>
+                                        </td>
+                                        <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark">
+                                            {reunion.etat}
+                                        </td>
+                                        <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark">
+                                            <button
+                                            onClick={() => navigate(`/aeromemo/reunion/${reunion.id}`)}
+                                            className="text-primaryGreen hover:underline dark:text-darkgreen"
+                                            >
+                                            Voir
+                                            </button>
+                                        </td>
+                                        </tr>
+                                    ))
+                                    ) : (
+                                    <tr>
+                                        <td colSpan={7} className="text-center py-4">
+                                        Aucune de vos réunions trouvée
+                                        </td>
+                                    </tr>
+                                    )
+                                ) : null}
                                 </tbody>
+
                             </table>
                         </div>
                         
