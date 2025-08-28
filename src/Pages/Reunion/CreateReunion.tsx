@@ -176,6 +176,23 @@ const ParticipantsAutocomplete: React.FC<ParticipantsAutocompleteProps> = ({
 
 const notyf = new Notyf({ position: { x: "center", y: "top" } });
 
+function parseJwt(token: string) {
+  try {
+    const base64Url = token.split(".")[1]; // on prend juste le payload
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.error("Impossible de décoder le token:", e);
+    return null;
+  }
+}
+
 const CreateReunion = () => {
   const [requiredParticipants, setRequiredParticipants] = useState<SimpleUser[]>([]);
   const [optionalParticipants, setOptionalParticipants] = useState<SimpleUser[]>([]);
@@ -198,6 +215,11 @@ const CreateReunion = () => {
     return `${timeStr}:00${sign}${hours}:${minutes}`;
   };
 
+  const token = localStorage.getItem("_au_pr") || "";
+  const decoded = parseJwt(token);
+
+ 
+
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (submitting || !formRef.current) return;
@@ -211,6 +233,7 @@ const CreateReunion = () => {
   const heureDebut = String(form.get("heureDebut") || "").trim();
   const heureFin = String(form.get("heureFin") || "").trim();
   const emplacement = String(form.get("emplacement") || "").trim();
+   const userid = decoded?.id || decoded?.sub || decoded?.userId || "";
 
     // Préparer les données des participants
     const requiredIds = requiredParticipants.map(p => p.id);
@@ -232,6 +255,7 @@ const CreateReunion = () => {
       etat: 1,
       participantsObligatoires: requiredParticipants.map(p => p.email),
       participantsFacultatifs: optionalParticipants.map(p => p.email),
+      userid,
     };
 
     console.log("Payload préparé:", JSON.stringify(payload, null, 2));

@@ -14,6 +14,7 @@ export type SaveReunionPayload = {
     etat: number;
     participantsObligatoires: string[];  // seulement les emails
     participantsFacultatifs: string[]; 
+    userid: string;
   };
 
 export type SaveReunionResponse = {
@@ -26,9 +27,11 @@ export const saveReunion = async (payload: SaveReunionPayload): Promise<SaveReun
     
     try {
         console.log("Payload envoyé au serveur:", JSON.stringify(payload,null,2));
+        const token = localStorage.getItem("_au_pr"); 
 
         const res = await axios.post(`${endPoint}/api/reunion/save`,payload, {
             headers: {
+                "Authorization": `Bearer ${token}`,
                 'Content-type': 'application/json'
             }
         });
