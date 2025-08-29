@@ -9,6 +9,7 @@ import Planification from "./Pages/Reunion/Planification/Planification";
 import ManageAccess from "./Pages/Admin/ManageAccess";
 import Login from "./Pages/Login/Login";
 import { SetStateAction } from "react";
+import DetailsReunion from "./Pages/Reunion/DetailsReunion";
 
 
 const App = () => {
@@ -87,6 +88,10 @@ const App = () => {
               <CreateReunion/>
             </>
           }
+        />
+        <Route 
+          path="/aeromemo/reunion/:id" 
+          element={<DetailsReunion />} 
         />
          <Route
           path="/aeromemo/planification"

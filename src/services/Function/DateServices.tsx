@@ -120,3 +120,8 @@ export const formatDateTime = (dateString: string, withTime = false) => {
 
   return date.toLocaleDateString('fr-FR', options);
 };
+
+export const formatTime = (timeStr:string) => {
+    const [hours, minutes] = timeStr.split(":");
+    return `${hours}h${minutes}`;
+};
