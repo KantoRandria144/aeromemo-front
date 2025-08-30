@@ -2,14 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../../components/BreadCrumbs/BreadCrumb";
 import CustomSelect from "../../../components/UIElements/Select/CustomSelect";
-import CustomInputUserSpecifiedSearch from "../../../components/UIElements/Input/CustomInputUserSpecifiedSearch";
 import CustomInput from "../../../components/UIElements/Input/CustomInput";
 import DefaultLayout from "../../../components/layout/DefaultLayout";
 import { Reunion } from "../../../types/reunion";
-import { getAllReunions, getMyReunions, listAllReunion } from "../../../services/Reunion/ReunionServices";
+import { getMyReunions, listAllReunion } from "../../../services/Reunion/ReunionServices";
 import { getThreeInitials } from "../../../services/Function/UserFonctionService";
 
-const Planification = () => {
+const Planification =  ({ userConnected }: { userConnected: any })  => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<"all" | "mine">("all");
     const [reunions, setReunions] = useState<Reunion[]>([]);
@@ -26,7 +25,9 @@ const Planification = () => {
       if (activeTab === "all") {
         data = await listAllReunion();
       } else if (activeTab === "mine") {
-        data = await getMyReunions();
+        if (userConnected?.userid) {
+            data = await getMyReunions(userConnected.userid);
+        }
       }
 
       setReunions(data);

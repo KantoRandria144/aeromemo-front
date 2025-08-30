@@ -174,24 +174,24 @@ export const listAllReunion = async (): Promise<Reunion[]> => {
 };
 
 // Récupérer les réunions de l’utilisateur connecté
-export const getMyReunions = async (): Promise<Reunion[]> => {
-  try {
-    const token = localStorage.getItem("_au_pr");
+export const getMyReunions = async (userId: string): Promise<Reunion[]> => {
+    try {
+      const token = localStorage.getItem("_au_pr");
+      if (!token) throw new Error("Utilisateur non connecté");
 
-    const response = await axios.get(`${endPoint}/api/reunion/my-reunions`, {
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Accept": "application/json"
-      }
-    });
-
-    return response.data;
-  } catch (error) {
-    console.error("Erreur lors de la récupération des réunions de l’utilisateur connecté:", error);
-    throw error;
-  }
-};
-
+      const response = await axios.get(`${endPoint}/api/reunion/my-reunions/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json"
+        }
+      });
+  
+      return response.data as Reunion[];
+    } catch (error) {
+      console.error("Erreur lors de la récupération des réunions :", error);
+      throw error;
+    }
+  };
   
 //  créer une réunion
 export const createReunion = async (reunionData: CreateReunion): Promise<Reunion> => {
