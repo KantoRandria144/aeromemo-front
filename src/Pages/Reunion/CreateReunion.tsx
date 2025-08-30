@@ -193,7 +193,7 @@ function parseJwt(token: string) {
   }
 }
 
-const CreateReunion = () => {
+const CreateReunion = ({ userConnected }: { userConnected: any }) => {
   const [requiredParticipants, setRequiredParticipants] = useState<SimpleUser[]>([]);
   const [optionalParticipants, setOptionalParticipants] = useState<SimpleUser[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -233,7 +233,11 @@ const CreateReunion = () => {
   const heureDebut = String(form.get("heureDebut") || "").trim();
   const heureFin = String(form.get("heureFin") || "").trim();
   const emplacement = String(form.get("emplacement") || "").trim();
-   const userid = decoded?.id || decoded?.sub || decoded?.userId || "";
+  let userid = "";
+  if (userConnected?.userid) {
+    userid = userConnected.userid; // const userid = userConnected.userid
+  }
+  
 
     // Préparer les données des participants
     const requiredIds = requiredParticipants.map(p => p.id);
