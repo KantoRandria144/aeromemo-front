@@ -14,13 +14,16 @@ export type SaveReunionPayload = {
     etat: number;
     participantsObligatoires: string[];  // seulement les emails
     participantsFacultatifs: string[]; 
-    userid: string;
+    userId: string;
   };
 
 export type SaveReunionResponse = {
     id: any;
     reunion: Reunion;
     outlookUrl: string;
+    teamsMeetingLink: string;
+    teamsMeetingId: string;
+    teamsSecretCode: string;
 };
 
 export const saveReunion = async (payload: SaveReunionPayload): Promise<SaveReunionResponse> => {
@@ -76,6 +79,9 @@ export const saveReunion = async (payload: SaveReunionPayload): Promise<SaveReun
   };
 
 export const buildOutlookUrl = (reunion: Reunion): string => {
+    if (reunion.outlookEventId) {
+        return reunion.outlookEventId;
+    }
     
     const {
     titre,
@@ -101,39 +107,30 @@ function ensureTimeWithTimezone(time: string): string {
     return `${time}:00Z`;
   }
 
-  return time; // fallback si autre format
+  return time; 
 }
 
 const startTime = `${dateDebut}T${ensureTimeWithTimezone( heureDebut)}`;
 const endTime   = `${dateFin}T${ensureTimeWithTimezone( heureFin)}`;
-
-    //const formatDate = (date: Date) => date.toISOString().replace(/-|:|\.\d+/g, '');
     
-    // return `https://outlook.office.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent` +
-    //     `&startdt=${encodeURIComponent(startTime)}` +
-    //     `&enddt=${encodeURIComponent(endTime)}` +
-    //     `&subject=${encodeURIComponent(reunion.titre)}` +
-    //     `&location=${encodeURIComponent(reunion.emplacement || "")}` +
-    //     `&body=${encodeURIComponent(reunion.description || "")}`;
-    
-    let url = `https://outlook.office.com/calendar/0/deeplink/compose?subject=${encodeURIComponent(titre)}`;
-        url += `&body=${encodeURIComponent(description || "")}`;
-        url += `&location=${encodeURIComponent(emplacement || "")}`;
+    let url = `https://outlook.office.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent`;
         url += `&startdt=${encodeURIComponent(startTime)}`;
         url += `&enddt=${encodeURIComponent(endTime)}`;
+        url += `&subject=${encodeURIComponent(titre)}`;
+        url += `&location=${encodeURIComponent(emplacement || "")}`;
+        url += `&body=${encodeURIComponent(description || "")}`
         
     
     // Extraire les emails des participants
     const getEmails = (participants: any[]) => {
         return participants
         .filter(p => p && (p.email || (typeof p === 'string' && p.includes('@'))))
-        .map(p => typeof p === 'string' ? p : p.email);
+        .map(p => typeof p === 'string' ? p : p.email)
+        .filter((email): email is string => email !== undefined && email !== null);
     };
 
     const requiredEmails = getEmails(participantsObligatoires);
     const optionalEmails = getEmails(participantsFacultatifs);
-    //const allEmails = [...requiredEmails, ...optionalEmails];
-
     
     // Ajouter les participants obligatoires (champ "to")
     if (requiredEmails.length > 0) {
@@ -149,6 +146,39 @@ const endTime   = `${dateFin}T${ensureTimeWithTimezone( heureFin)}`;
         url += `&cc=${encodeURIComponent(emailsToInclude)}`;
     }
 
+    return url;
+};
+
+export const buildTeamsUrl = (reunion: Reunion): string => {
+    if (reunion.teamsMeetingLink) {
+        return reunion.teamsMeetingLink;
+    }
+     const {
+        titre,
+        description,
+        dateDebut,
+        dateFin,
+        heureDebut,
+        heureFin,
+    } = reunion;
+
+    function ensureTimeWithTimezone(time: string): string {
+        if (time.match(/^\d{2}:\d{2}(:\d{2})?(Z|[+-]\d{2}:\d{2})$/)) {
+            return time;
+        }
+        if (time.match(/^\d{2}:\d{2}$/)) {
+            return `${time}:00Z`;
+        }
+        return time;
+    }
+
+    const startTime = `${dateDebut}T${ensureTimeWithTimezone(heureDebut)}`;
+    const endTime = `${dateFin}T${ensureTimeWithTimezone(heureFin)}`;
+
+    let url = `https://teams.microsoft.com/l/meeting/new?subject=${encodeURIComponent(titre)}`;
+        url += `&startDate=${encodeURIComponent(startTime)}`;
+        url += `&endDate=${encodeURIComponent(endTime)}`;
+        url += `&content=${encodeURIComponent(description || "")}`;
     return url;
 };
 
@@ -245,8 +275,68 @@ export const deletereunion = async (id: string): Promise<Reunion> => {
         const response = await axios.delete(`${endPoint}/api/Reunion/${id}`);
         console.log(`Reunion supprimée avec succès`);
         return response.data;
+
+        // const token = localStorage.getItem("_au_pr");
+        // if (!token) throw new Error("Token d'authentification manquant");
+
+        // await axios.delete(`${endPoint}/api/reunion/${id}`, {
+        //     headers: {
+        //         "Authorization": `Bearer ${token}`
+        //     }
+        // });
+        
+        // console.log("Réunion supprimée avec succès");
     } catch (error) {
         console.error(`Erroro lors de la suppression de la réunion: ${error}`);
         throw error;
     }
+};
+
+export const formatTeamsInfo = (reunion: Reunion): string => {
+    if (reunion.teamsMeetingId && reunion.teamsSecretCode) {
+        return `Microsoft Teams Besoin d'aide ?\n\n` +
+               `Rejoignez la réunion maintenant\n\n` +
+               `Numéro de réunion: ${reunion.teamsMeetingId}\n` +
+               `Code secret: ${reunion.teamsSecretCode}\n\n` +
+               `Lien direct: ${reunion.teamsMeetingLink || 'Non disponible'}`;
+    }
+    return "Informations de réunion Teams non disponibles";
+};
+
+export const copyTeamsInfoToClipboard = async (reunion: Reunion): Promise<boolean> => {
+    try {
+        const teamsInfo = formatTeamsInfo(reunion);
+        await navigator.clipboard.writeText(teamsInfo);
+        return true;
+    } catch (error) {
+        console.error("Erreur lors de la copie des informations Teams:", error);
+        return false;
+    }
+};
+
+export const openOutlookCalendar = (reunion: Reunion): void => {
+    const outlookUrl = buildOutlookUrl(reunion);
+    window.open(outlookUrl, '_blank');
+};
+
+export const openTeamsMeeting = (reunion: Reunion): void => {
+    const teamsUrl = buildTeamsUrl(reunion);
+    window.open(teamsUrl, '_blank');
+};
+
+export const exportReunionInfo = (reunion: Reunion): string => {
+    return `RÉUNION: ${reunion.titre}\n` +
+           `Date: ${reunion.dateDebut} ${reunion.heureDebut} - ${reunion.dateFin} ${reunion.heureFin}\n` +
+           `Lieu: ${reunion.emplacement || 'Non spécifié'}\n` +
+           `Description: ${reunion.description || 'Aucune description'}\n\n` +
+           `${formatTeamsInfo(reunion)}\n\n` +
+           `Lien Outlook: ${buildOutlookUrl(reunion)}`;
+};
+
+export const hasTeamsInfo = (reunion: Reunion): boolean => {
+    return !!(reunion.teamsMeetingId && reunion.teamsSecretCode);
+};
+
+export const hasOutlookInfo = (reunion: Reunion): boolean => {
+    return !!reunion.outlookEventId;
 };

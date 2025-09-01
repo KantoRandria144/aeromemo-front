@@ -117,16 +117,16 @@ const [showQRModal, setShowQRModal] = useState(false);
             <p>Emplacement: {reunion.emplacement}</p>
 
             <p>
-              Lien de la réunion:{" "}
+              Lien de la réunion:{reunion.teamsMeetingLink}
               <a
-                href={""}
+                href={reunion.teamsMeetingLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-500 underline"
               ></a>
             </p>
-            <p>ID de la réunion: </p>
-            <p>Code secret:</p>
+            <p>ID de la réunion: {reunion.teamsMeetingId}</p>
+            <p>Code secret: {reunion.teamsSecretCode}</p>
           </div>
 
           {/* Liste des participants */}

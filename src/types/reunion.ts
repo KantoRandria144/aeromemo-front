@@ -43,6 +43,10 @@ export interface Reunion {
     etat:EtatReunion;
     participantsObligatoires: string[];  
     participantsFacultatifs: string[]; 
+    teamsMeetingLink?: string;
+    teamsMeetingId?: string;
+    teamsSecretCode?: string;
+    outlookEventId?:string;
 }
 export enum EtatReunion {
     Planifie="Planifié",

@@ -5,7 +5,7 @@ import CustomInput from "../../components/UIElements/Input/CustomInput";
 import { getAllUsers } from "../../services/User/UserServices";
 import { Notyf } from "notyf";
 import "notyf/notyf.min.css";
-import { saveReunion , buildOutlookUrl} from "../../services/Reunion/ReunionServices";
+import { saveReunion, formatTeamsInfo, copyTeamsInfoToClipboard } from "../../services/Reunion/ReunionServices";
 import axios from "axios";
 import { getThreeInitials } from "../../services/Function/UserFonctionService";
 
@@ -178,7 +178,7 @@ const notyf = new Notyf({ position: { x: "center", y: "top" } });
 
 function parseJwt(token: string) {
   try {
-    const base64Url = token.split(".")[1]; // on prend juste le payload
+    const base64Url = token.split(".")[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     const jsonPayload = decodeURIComponent(
       atob(base64)
@@ -193,32 +193,19 @@ function parseJwt(token: string) {
   }
 }
 
-const CreateReunion = ({ userConnected }: { userConnected: any }) => {
+const CreateReunion = () => {
   const [requiredParticipants, setRequiredParticipants] = useState<SimpleUser[]>([]);
   const [optionalParticipants, setOptionalParticipants] = useState<SimpleUser[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [outlookUrl, setOutlookUrl] = useState<string | null>(null);
-  const [showOutlookModal, setShowOutlookModal] = useState(false);
+  const [teamsUrl, setTeamsUrl] = useState<string | null>(null);
+  const [teamsInfo, setTeamsInfo] = useState<string | null>(null);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [showTeamsInfoModal, setShowTeamsInfoModal] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-
-  const ensureTimeWithTimezone = (dateStr: string, timeStr: string) => {
-    if (!dateStr ||!timeStr) return "";
-
-    const localDate = new Date(`${dateStr}T${timeStr}`);
-
-    const timezoneOffset = -localDate.getTimezoneOffset();
-    const sign = timezoneOffset >=0 ? '+' : '-';
-    const pad = (num: number) => Math.floor(Math.abs(num)).toString().padStart(2, '0');
-    const hours = pad(timezoneOffset / 60);
-    const minutes = pad(timezoneOffset % 60);
-
-    return `${timeStr}:00${sign}${hours}:${minutes}`;
-  };
 
   const token = localStorage.getItem("_au_pr") || "";
   const decoded = parseJwt(token);
-
- 
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -226,27 +213,16 @@ const CreateReunion = ({ userConnected }: { userConnected: any }) => {
 
     const form = new FormData(e.currentTarget);
 
-  const titre = String(form.get("titre") || "").trim();
-  const description = String(form.get("description") || "").trim();
-  const dateDebut = String(form.get("dateDebut") || "").trim();
-  const dateFin = String(form.get("dateFin") || "").trim();
-  const heureDebut = String(form.get("heureDebut") || "").trim();
-  const heureFin = String(form.get("heureFin") || "").trim();
-  const emplacement = String(form.get("emplacement") || "").trim();
-  let userid = "";
-  if (userConnected?.userid) {
-    userid = userConnected.userid; // const userid = userConnected.userid
-  }
-  
-
-    // Préparer les données des participants
-    const requiredIds = requiredParticipants.map(p => p.id);
-    const requiredEmails = requiredParticipants.map(p => p.email);
-    const optionalIds = optionalParticipants.map(p => p.id);
-    const optionalEmails = optionalParticipants.map(p => p.email);
-
-    const heureDebutWithTz = ensureTimeWithTimezone(dateDebut, heureDebut);
-    const heureFinWithTz = ensureTimeWithTimezone(dateFin, heureFin);
+    const titre = String(form.get("titre") || "").trim();
+    const description = String(form.get("description") || "").trim();
+    const dateDebut = String(form.get("dateDebut") || "").trim();
+    const dateFin = String(form.get("dateFin") || "").trim();
+    const heureDebut = String(form.get("heureDebut") || "").trim();
+    const heureFin = String(form.get("heureFin") || "").trim();
+    const emplacement = String(form.get("emplacement") || "").trim();
+    const userid = localStorage.getItem("userId") || "";
+    
+    console.log("userid récupéré depuis localStorage:", userid);
 
     const payload = {
       titre,
@@ -259,7 +235,7 @@ const CreateReunion = ({ userConnected }: { userConnected: any }) => {
       etat: 1,
       participantsObligatoires: requiredParticipants.map(p => p.email),
       participantsFacultatifs: optionalParticipants.map(p => p.email),
-      userid,
+      userId: userid, // Changé de userid à userId
     };
 
     console.log("Payload préparé:", JSON.stringify(payload, null, 2));
@@ -276,15 +252,29 @@ const CreateReunion = ({ userConnected }: { userConnected: any }) => {
 
     try {
       const response = await saveReunion(payload);
-      const url = response.outlookUrl || buildOutlookUrl(response.reunion);
       
-      setOutlookUrl(url);
-      setShowOutlookModal(true);
+      // Utiliser les URLs générées par le backend
+      setOutlookUrl(response.outlookUrl);
+      setTeamsUrl(response.teamsMeetingLink);
       
+      // Générer les informations Teams formatées
+      const formattedTeamsInfo = formatTeamsInfo(response.reunion);
+      setTeamsInfo(formattedTeamsInfo);
+      
+      // Copier automatiquement les infos Teams dans le clipboard
+      const copied = await copyTeamsInfoToClipboard(response.reunion);
+      if (copied) {
+        notyf.success("Informations Teams copiées dans le presse-papier !");
+      }
+      
+      setShowCalendarModal(true);
       notyf.success("Réunion créée avec succès !");
+      
+      // Réinitialiser le formulaire
       formRef.current.reset();
       setRequiredParticipants([]);
       setOptionalParticipants([]);
+      
     } catch (error) {
       let msg = "Une erreur est survenue lors de l'enregistrement.";
       
@@ -300,6 +290,13 @@ const CreateReunion = ({ userConnected }: { userConnected: any }) => {
       notyf.error(msg);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleCopyTeamsInfo = async () => {
+    if (teamsInfo) {
+      await navigator.clipboard.writeText(teamsInfo);
+      notyf.success("Informations Teams copiées !");
     }
   };
 
@@ -418,27 +415,97 @@ const CreateReunion = ({ userConnected }: { userConnected: any }) => {
           </div>
         </div>
 
-        {showOutlookModal && outlookUrl && (
+        {/* Modal d'options calendrier */}
+        {showCalendarModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-boxdark rounded-lg p-6 max-w-md w-full">
-              <h3 className="text-lg font-bold mb-4">Ajouter à Outlook</h3>
-              <p className="mb-6">Voulez-vous ajouter cette réunion à votre calendrier Outlook ?</p>
+              <h3 className="text-lg font-bold mb-4">Réunion créée avec succès !</h3>
+              <p className="mb-4">Que souhaitez-vous faire maintenant ?</p>
               
-              <div className="flex justify-end gap-3">
+              <div className="space-y-3 mb-6">
+                {outlookUrl && (
+                  <button
+                    onClick={() => {
+                      window.open(outlookUrl, '_blank');
+                      setShowCalendarModal(false);
+                    }}
+                    className="w-full px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                    </svg>
+                    Ouvrir dans Outlook
+                  </button>
+                )}
+                
+                {teamsUrl && (
+                  <button
+                    onClick={() => {
+                      window.open(teamsUrl, '_blank');
+                      setShowCalendarModal(false);
+                    }}
+                    className="w-full px-4 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                    Rejoindre Teams
+                  </button>
+                )}
+
+                {teamsInfo && (
+                  <button
+                    onClick={() => {
+                      setShowTeamsInfoModal(true);
+                      setShowCalendarModal(false);
+                    }}
+                    className="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                    </svg>
+                    Voir infos Teams
+                  </button>
+                )}
+              </div>
+              
+              <div className="flex justify-end">
                 <button
-                  onClick={() => setShowOutlookModal(false)}
-                  className="px-4 py-2 border rounded-md dark:border-form-strokedark dark:bg-boxdark-2 dark:text-white"
+                  onClick={() => setShowCalendarModal(false)}
+                  className="px-4 py-2 border rounded-md dark:border-form-strokedark dark:bg-boxdark-2 dark:text-white hover:bg-gray-100 dark:hover:bg-boxdark-3"
                 >
-                  Plus tard
+                  Fermer
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal d'informations Teams */}
+        {showTeamsInfoModal && teamsInfo && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-boxdark rounded-lg p-6 max-w-md w-full">
+              <h3 className="text-lg font-bold mb-4">Informations de réunion Teams</h3>
+              
+              <div className="bg-gray-100 dark:bg-boxdark-2 p-4 rounded-md mb-4">
+                <pre className="whitespace-pre-wrap text-sm font-mono">
+                  {teamsInfo}
+                </pre>
+              </div>
+              
+              <div className="flex justify-between">
                 <button
-                  onClick={() => {
-                    window.open(outlookUrl, '_blank');
-                    setShowOutlookModal(false);
-                  }}
+                  onClick={handleCopyTeamsInfo}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
-                  Ouvrir Outlook
+                  Copier
+                </button>
+                
+                <button
+                  onClick={() => setShowTeamsInfoModal(false)}
+                  className="px-4 py-2 border rounded-md dark:border-form-strokedark dark:bg-boxdark-2 dark:text-white hover:bg-gray-100 dark:hover:bg-boxdark-3"
+                >
+                  Fermer
                 </button>
               </div>
             </div>
