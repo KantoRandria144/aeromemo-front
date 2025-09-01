@@ -33,6 +33,12 @@ const Login = () => {
     try {
       const loginAnswer = await loginUser(user);
       if (loginAnswer.type === "success") {
+        const userId = loginAnswer.userId || loginAnswer.data?.id;
+        console.log("userId connected:", userId);
+
+        if(userId) {
+          localStorage.setItem("userId", userId);
+        }
         navigate("/aeromemo/home");
       } else if (loginAnswer.type === "unknown_user") {
         setLoginError({ ...loginError, mail: loginAnswer.message });

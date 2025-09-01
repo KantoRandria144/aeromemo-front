@@ -26,13 +26,14 @@ export const useAuthService = () => {
       );
 
       console.log("Réponse du backend login :", response.data);
+      
 
       if (response.data && response.data.type === "success") {
         let adminPrivilege = false;
         let reunionPrivilege = false;
 
         const habilitations = response.data.user?.habilitations || [];
-
+        console.log("Réponse du id login :", response.data.user.id);
         if (Array.isArray(habilitations)) {
           habilitations.forEach(
             (hab: {
@@ -80,6 +81,10 @@ export const useAuthService = () => {
         }
         if (reunionPrivilege) {
           localStorage.setItem("_au_pr", response.data.token);
+        }
+
+        if (response.data.user?.id) {
+          localStorage.setItem("userId", response.data.user.id);
         }
         // Toujours sauvegarder _au_pr (pour savoir qui est connecté)
         localStorage.setItem("_au_pr", response.data.token);

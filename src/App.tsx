@@ -8,11 +8,26 @@ import CreateReunion from "./Pages/Reunion/CreateReunion";
 import Planification from "./Pages/Reunion/Planification/Planification";
 import ManageAccess from "./Pages/Admin/ManageAccess";
 import Login from "./Pages/Login/Login";
-import { SetStateAction } from "react";
+import { SetStateAction, useEffect, useState } from "react";
 import DetailsReunion from "./Pages/Reunion/DetailsReunion";
+import { IDecodedToken } from "./types/user";
+import { decodeToken } from "./services/Function/TokenService";
 
 
 const App = () => {
+   const [decodedToken, setDecodedToken] = useState<IDecodedToken>();
+     useEffect(() => {
+       const token = localStorage.getItem("_au_pr");
+       if (token) {
+         try {
+           const decoded = decodeToken("pr");
+           setDecodedToken(decoded);
+         } catch (error) {
+           console.error(`Invalid token ${error}`);
+           localStorage.removeItem("_au_pr");
+         }
+       }
+     }, []);
   return (
     <>
       <Routes>
@@ -98,19 +113,7 @@ const App = () => {
           element={
             <>
               <PageTitle  title="Planification"/>
-              <Planification search={{
-                title: "",
-                member: "",
-                priority: "",
-                criticity: "",
-                completionPercentage: "",
-                startDate: undefined,
-                endDate: undefined
-              }} availableUser={[]} selectedUserInput={[]} setSelecteduserInput={function (value: SetStateAction<{ id: string; name: string; email: string; }[]>): void {
-                throw new Error("Function not implemented.");
-              } } setSearch={function (value: SetStateAction<{ title: string; member: string; priority: string; criticity: string; completionPercentage: string; startDate: string | undefined; endDate: string | undefined; }>): void {
-                throw new Error("Function not implemented.");
-              } }/>
+              <Planification/>
             </>
           }
         /> 
