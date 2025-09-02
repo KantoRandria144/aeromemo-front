@@ -11,6 +11,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import { LayoutGrid, CalendarDays } from "lucide-react";
 
 const Planification =  ()  => {
     const navigate = useNavigate();
@@ -114,28 +115,33 @@ const Planification =  ()  => {
 
     // Composant pour afficher un participant avec la couleur appropriée
     const ParticipantAvatar = ({ nom, type, showTooltip = true }: { 
-        nom: string; 
-        type: 'obligatoire' | 'facultatif';
-        showTooltip?: boolean;
-    }) => {
-        const initials = getThreeInitials(nom);
-        const bgColor = type === 'obligatoire' 
-            ? 'bg-secondaryGreen' 
-            : 'bg-blue-400';
-        
-        return (
-            <div className="relative group -ml-2 first:ml-0 hover:z-99 cursor-pointer">
-                <p className={`text-slate-50 border relative ${bgColor} p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full dark:text-white dark:border-transparent`}>
-                    {initials}
-                </p>
-                {showTooltip && (
-                    <div className="absolute whitespace-nowrap text-xs hidden group-hover:block bg-white text-black p-2 border border-whiten shadow-5 rounded-md z-999 top-[-35px] left-1/2 transform -translate-x-1/2">
-                        <p>{nom} ({type === 'obligatoire' ? 'Obligatoire' : 'Facultatif'})</p>
-                    </div>
-                )}
-            </div>
-        );
-    };
+    nom: string; 
+    type: 'obligatoire' | 'facultatif';
+    showTooltip?: boolean;
+}) => {
+    const initials = getThreeInitials(nom);
+
+    // Appliquer les bonnes couleurs : obligatoire = bleu, facultatif = jaune
+    const bgColor = type === 'obligatoire' 
+        ? 'bg-cyan-100 text-cyan-600 border-cyan-300  dark:bg-cyan-900 dark:text-cyan-300 dark:border-cyan-700'     // bleu clair
+        : 'bg-amber-100 text-amber-600 border-amber-300  dark:bg-amber-900 dark:text-amber-300 dark:border-amber-700'; // jaune clair
+    
+    return (
+        <div className="relative group -ml-2 first:ml-0 hover:z-99 cursor-pointer">
+            <p className={`text-slate-50 border relative ${bgColor} p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full dark:text-white dark:border-transparent`}>
+                {initials}
+            </p>
+            {showTooltip && (
+                <div className="absolute whitespace-nowrap text-xs hidden group-hover:block bg-white text-black p-2 border border-whiten shadow-5 rounded-md z-999 top-[-35px] left-1/2 transform -translate-x-1/2">
+                    <p>{nom} </p>
+                    <span className={`text-xs px-2 rounded-full ${bgColor}`}>
+                        {type === 'obligatoire' ? 'Obligatoire' : 'Facultatif'}
+                    </span>
+                </div>
+            )}
+        </div>
+    );
+};
 
     // Composant pour la vue calendrier
     const CalendarView = () => (
@@ -174,29 +180,30 @@ const Planification =  ()  => {
                             paths={[{ name: "Liste des Projets", to: "/aeromemo/planification" }]}
                         />
                         
-                        <div className="">
-                            <nav className="flex overflow-x-auto items-center p-1 space-x-1 rtl:space-x-reverse text-sm text-gray-600 bg-gray-500/5 rounded-xl dark:bg-gray-500/20">
+                       <div className="flex items-center gap-2 mt-4">
+                            <nav className="flex items-center gap-2">
                                 <button
-                                    role="tab"
-                                    type="button"
-                                    className={`flex whitespace-nowrap items-center h-8 px-5 font-medium rounded-lg outline-none focus:ring-2 focus:green-600 focus:ring-inset ${activeView === "list"
-                                        ? "text-green-600 shadow bg-white dark:text-white dark:bg-green-600"
-                                        : "hover:text-gray-800 focus:text-green-600 dark:text-gray-400 dark:hover:text-gray-300 dark:focus:text-gray-400"
-                                        }`}
-                                    onClick={() => setActiveView("list")}
+                                onClick={() => setActiveView("list")}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition ${
+                                    activeView === "list"
+                                    ? "bg-green-100 text-green-600"
+                                    : "text-black hover:text-green-600"
+                                }`}
                                 >
-                                    Liste
+                                <LayoutGrid size={18} />
+                                <span>Tableau</span>
                                 </button>
+
                                 <button
-                                    role="tab"
-                                    type="button"
-                                    className={`flex whitespace-nowrap items-center h-8 px-5 font-medium rounded-lg outline-none focus:ring-2 focus:ring-green-600 focus:ring-inset ${activeView === "calendar"
-                                        ? "text-green-600 shadow bg-white dark:text-white dark:bg-green-600"
-                                        : "hover:text-gray-800 focus:text-green-600 dark:text-gray-400 dark:hover:text-gray-300 dark:focus:text-gray-400"
-                                        }`}
-                                    onClick={() => setActiveView("calendar")}
+                                onClick={() => setActiveView("calendar")}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition ${
+                                    activeView === "calendar"
+                                    ? "bg-green-100 text-green-600"
+                                    : "text-black hover:text-green-600"
+                                }`}
                                 >
-                                    Calendrier
+                                <CalendarDays size={18} />
+                                <span>Calendrier</span>
                                 </button>
                             </nav>
                         </div>
@@ -225,33 +232,6 @@ const Planification =  ()  => {
                     </div>
 
                     <div className="bg-white min-h-[80vh] pt-2 shadow-1 rounded-lg border border-zinc-200 dark:border-strokedark dark:bg-boxdark">
-                        <div className="flex justify-center">
-                            <nav className="flex overflow-x-auto items-center p-1 space-x-1 rtl:space-x-reverse text-sm text-gray-600 bg-gray-500/5 rounded-xl dark:bg-gray-500/20">
-                                <button
-                                    role="tab"
-                                    type="button"
-                                    className={`flex whitespace-nowrap items-center h-8 px-5 font-medium rounded-lg outline-none focus:ring-2 focus:green-600 focus:ring-inset ${activeView === "list"
-                                        ? "text-green-600 shadow bg-white dark:text-white dark:bg-green-600"
-                                        : "hover:text-gray-800 focus:text-green-600 dark:text-gray-400 dark:hover:text-gray-300 dark:focus:text-gray-400"
-                                        }`}
-                                    onClick={() => setActiveView("list")}
-                                >
-                                    Liste
-                                </button>
-                                <button
-                                    role="tab"
-                                    type="button"
-                                    className={`flex whitespace-nowrap items-center h-8 px-5 font-medium rounded-lg outline-none focus:ring-2 focus:ring-green-600 focus:ring-inset ${activeView === "calendar"
-                                        ? "text-green-600 shadow bg-white dark:text-white dark:bg-green-600"
-                                        : "hover:text-gray-800 focus:text-green-600 dark:text-gray-400 dark:hover:text-gray-300 dark:focus:text-gray-400"
-                                        }`}
-                                    onClick={() => setActiveView("calendar")}
-                                >
-                                    Calendrier
-                                </button>
-                            </nav>
-                        </div>
-
                         <div className="flex justify-center mt-2">
                             <nav className="flex overflow-x-auto items-center p-1 space-x-1 text-sm text-gray-600 bg-gray-500/5 rounded-xl dark:bg-gray-500/20">
                                 <button 
@@ -407,11 +387,11 @@ const Planification =  ()  => {
                                                                 <span>Titre</span>
                                                             </div>
                                                         </th>
-                                                        <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
+                                                        {/* <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
                                                             <div className="flex items-center gap-1">
                                                                 <span>Organisateur</span>
                                                             </div>
-                                                        </th>
+                                                        </th> */}
                                                         <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
                                                             <div className="flex items-center gap-1">
                                                                 <span>Participants</span>
@@ -490,9 +470,9 @@ const Planification =  ()  => {
                                                 <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
                                                     <p className="text-black text-justify dark:text-white font-bold">{reunion.titre}</p>
                                                 </td>
-                                                <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
-                                                    {/* Organisateur */}
-                                                </td>
+                                                {/* <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
+                                                    {/* Organisateur 
+                                                </td> */}
                                                 <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
                                                     {/* Participants OBLIGATOIRES et FACULTATIFS */}
                                                     <div className="flex -ml-2">

@@ -41,6 +41,7 @@ export interface Reunion {
     heureFin:string;
     emplacement?:string;
     etat:EtatReunion;
+    participants?: ParticipantDTO[];
     participantsObligatoires: string[];  
     participantsFacultatifs: string[]; 
     teamsMeetingLink?: string;
