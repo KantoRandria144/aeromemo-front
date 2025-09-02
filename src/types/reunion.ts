@@ -32,6 +32,7 @@ export interface UpdateReunion {
 }
 
 export interface Reunion {
+    qrCodeGenerated: string | null;
     id:string;
     titre: string;
     description: string;
