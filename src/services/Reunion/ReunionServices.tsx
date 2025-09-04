@@ -340,3 +340,31 @@ export const hasTeamsInfo = (reunion: Reunion): boolean => {
 export const hasOutlookInfo = (reunion: Reunion): boolean => {
     return !!reunion.outlookEventId;
 };
+
+
+// Récupérer tous les événements Outlook via Graph API
+export const getOutlookEvents = async (): Promise<any[]> => {
+  try {
+    const token = localStorage.getItem("_au_pr");
+    if (!token) throw new Error("Utilisateur non connecté");
+
+    const response = await axios.get(`${endPoint}/api/reunion/outlook-events`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+
+    console.log("Événements Outlook récupérés:", response.data);
+    return response.data.events; // ⚠️ ton contrôleur renvoie { message, events, count }
+  } catch (error: any) {
+    if (error.response) {
+      console.error("Erreur côté serveur:", error.response.data);
+    } else if (error.request) {
+      console.error("Aucune réponse reçue:", error.request);
+    } else {
+      console.error("Erreur Axios:", error.message);
+    }
+    throw error;
+  }
+};

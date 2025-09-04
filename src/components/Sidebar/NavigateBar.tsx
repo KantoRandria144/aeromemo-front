@@ -450,9 +450,9 @@ const NavigateBar = ({
                                                 </li>
                                                 <li>
                                                     <NavLink
-                                                    to="/gmp/project/add"
+                                                    to="/aeromemo/reunion/outlook"
                                                     className={`group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-tertiaryGreen dark:hover:bg-meta-4  ${
-                                                        pathname.includes("gmp/project/add") &&
+                                                        pathname.includes("/aeromemo/reunion/outlook") &&
                                                         "bg-tertiaryGreen dark:bg-secondaryGreen"
                                                     }`}
                                                     >

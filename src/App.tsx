@@ -12,6 +12,7 @@ import { SetStateAction, useEffect, useState } from "react";
 import DetailsReunion from "./Pages/Reunion/DetailsReunion";
 import { IDecodedToken } from "./types/user";
 import { decodeToken } from "./services/Function/TokenService";
+import OutlookEvents from "./Pages/Reunion/Planification/OutlookEvents";
 
 
 const App = () => {
@@ -107,6 +108,10 @@ const App = () => {
         <Route 
           path="/aeromemo/reunion/:id" 
           element={<DetailsReunion />} 
+        />
+         <Route 
+          path="/aeromemo/reunion/outlook" 
+          element={<OutlookEvents />} 
         />
          <Route
           path="/aeromemo/planification"
