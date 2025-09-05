@@ -29,6 +29,19 @@ export const useAuthService = () => {
       
 
       if (response.data && response.data.type === "success") {
+        const user = response.data.user;
+        const token = response.data.token;
+
+        if (user?.id) {
+          localStorage.setItem("userId",user.id);
+        } else {
+          console.warn("L'ID de l'utilisateur n'a pas été trouvé dans la réponse de l'API.");
+        }
+
+        if(token) {
+          localStorage.setItem("_au_pr", token);
+        }
+        
         let adminPrivilege = false;
         let reunionPrivilege = false;
 

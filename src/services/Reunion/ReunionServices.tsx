@@ -184,9 +184,12 @@ export const buildTeamsUrl = (reunion: Reunion): string => {
 
 export const listAllReunion = async (): Promise<Reunion[]> => {
     try {
+        const token = localStorage.getItem("token");
         const response = await axios.get(`${endPoint}/api/Reunion/list`, {
+            
             headers: {
-                "Accept": "application/json"
+                "Accept": "application/json",
+                Authorization: `Bearer ${token}`
             }
         });
         console.log("Réponse brute de l'API:", response);
