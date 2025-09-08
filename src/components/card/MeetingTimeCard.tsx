@@ -13,7 +13,7 @@ interface MeetingTimeCardProps {
     icon?: IconName;
 }
 
-// Map des icônes avec typage
+// Map des icônes
 const iconMap: Record<IconName, React.ComponentType<{ className?: string }>> = {
     users: Users,
     clock: Clock,
@@ -23,7 +23,7 @@ const iconMap: Record<IconName, React.ComponentType<{ className?: string }>> = {
     activity: Activity,
 };
 
-// Map des couleurs avec typage
+// Map des couleurs avec fond noir en dark mode
 const colorSchemes: Record<ColorSchemeName, {
     bg: string;
     border: string;
@@ -33,60 +33,60 @@ const colorSchemes: Record<ColorSchemeName, {
     period: string;
 }> = {
     green: {
-        bg: "bg-green-100",
-        border: "border-green-200",
-        icon: "text-green-700",
-        title: "text-green-800",
-        value: "text-green-900",
-        period: "text-green-700"
+        bg: "bg-green-100 dark:bg-black",
+        border: "border-green-200 dark:border-green-700",
+        icon: "text-green-700 dark:text-green-400",
+        title: "text-green-800 dark:text-green-300",
+        value: "text-green-900 dark:text-green-200",
+        period: "text-green-700 dark:text-green-500"
     },
     blue: {
-        bg: "bg-blue-100",
-        border: "border-blue-200",
-        icon: "text-blue-700",
-        title: "text-blue-800",
-        value: "text-blue-900",
-        period: "text-blue-700"
+        bg: "bg-blue-100 dark:bg-black",
+        border: "border-blue-200 dark:border-blue-700",
+        icon: "text-blue-700 dark:text-blue-400",
+        title: "text-blue-800 dark:text-blue-300",
+        value: "text-blue-900 dark:text-blue-200",
+        period: "text-blue-700 dark:text-blue-500"
     },
     purple: {
-        bg: "bg-purple-100",
-        border: "border-purple-200",
-        icon: "text-purple-700",
-        title: "text-purple-800",
-        value: "text-purple-900",
-        period: "text-purple-700"
+        bg: "bg-purple-100 dark:bg-black",
+        border: "border-purple-200 dark:border-purple-700",
+        icon: "text-purple-700 dark:text-purple-400",
+        title: "text-purple-800 dark:text-purple-300",
+        value: "text-purple-900 dark:text-purple-200",
+        period: "text-purple-700 dark:text-purple-500"
     },
     pink: {
-        bg: "bg-pink-100",
-        border: "border-pink-200",
-        icon: "text-pink-700",
-        title: "text-pink-800",
-        value: "text-pink-900",
-        period: "text-pink-700"
+        bg: "bg-pink-100 dark:bg-black",
+        border: "border-pink-200 dark:border-pink-700",
+        icon: "text-pink-700 dark:text-pink-400",
+        title: "text-pink-800 dark:text-pink-300",
+        value: "text-pink-900 dark:text-pink-200",
+        period: "text-pink-700 dark:text-pink-500"
     },
     orange: {
-        bg: "bg-orange-100",
-        border: "border-orange-200",
-        icon: "text-orange-700",
-        title: "text-orange-800",
-        value: "text-orange-900",
-        period: "text-orange-700"
+        bg: "bg-orange-100 dark:bg-black",
+        border: "border-orange-200 dark:border-orange-700",
+        icon: "text-orange-700 dark:text-orange-400",
+        title: "text-orange-800 dark:text-orange-300",
+        value: "text-orange-900 dark:text-orange-200",
+        period: "text-orange-700 dark:text-orange-500"
     },
     indigo: {
-        bg: "bg-indigo-100",
-        border: "border-indigo-200",
-        icon: "text-indigo-700",
-        title: "text-indigo-800",
-        value: "text-indigo-900",
-        period: "text-indigo-700"
+        bg: "bg-indigo-100 dark:bg-black",
+        border: "border-indigo-200 dark:border-indigo-700",
+        icon: "text-indigo-700 dark:text-indigo-400",
+        title: "text-indigo-800 dark:text-indigo-300",
+        value: "text-indigo-900 dark:text-indigo-200",
+        period: "text-indigo-700 dark:text-indigo-500"
     },
     cyan: {
-        bg: "bg-cyan-100",
-        border: "border-cyan-200",
-        icon: "text-cyan-700",
-        title: "text-cyan-800",
-        value: "text-cyan-900",
-        period: "text-cyan-700"
+        bg: "bg-cyan-100 dark:bg-black",
+        border: "border-cyan-200 dark:border-cyan-700",
+        icon: "text-cyan-700 dark:text-cyan-400",
+        title: "text-cyan-800 dark:text-cyan-300",
+        value: "text-cyan-900 dark:text-cyan-200",
+        period: "text-cyan-700 dark:text-cyan-500"
     }
 };
 
@@ -101,7 +101,9 @@ const MeetingTimeCard: FC<MeetingTimeCardProps> = ({
     const colors = colorSchemes[colorScheme];
 
     return (
-        <div className={`${colors.bg} ${colors.border} rounded-2xl shadow-md hover:shadow-lg transition transform hover:scale-[1.02] p-4`}>
+        <div
+            className={`${colors.bg} ${colors.border} border rounded-2xl shadow-md hover:shadow-lg transition-colors duration-300 transform hover:scale-[1.02] p-4`}
+        >
             {/* Header icon & titre */}
             <div className="flex items-center gap-2 mb-3">
                 <IconComponent className={`w-4 h-4 ${colors.icon}`} />
