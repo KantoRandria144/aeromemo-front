@@ -18,7 +18,9 @@ const MeetingsList: React.FC<MeetingsListProps> = ({ meetings }) => {
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">
                 Mes réunions du mois
             </h3>
-            <div className="space-y-3">
+            
+            {/* Conteneur scrollable si trop de réunions */}
+            <div className="space-y-3 max-h-64 md:max-h-96 overflow-y-auto pr-2">
                 {meetings.map((meeting, index) => (
                     <div
                         key={index}

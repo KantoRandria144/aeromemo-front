@@ -25,36 +25,25 @@ type Reunion = {
 
 const Accueil = () => {
   const [chartData, setChartData] = useState<{ name: string; data: number[] }[]>([]);
-
   const [search, setSearch] = useState({
     ids: [] as string[],
     dateDebut: undefined as string | undefined,
     dateFin: undefined as string | undefined,
   });
-
   const [selectedUserInput, setSelectedUserInput] = useState<TSubordinate[]>([]);
-  const [subordinates, setSuborinates] = useState<TSubordinate[]>([]);
+  const [subordinates, setSubordinates] = useState<TSubordinate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
-
-  const categories = ["Projets", "Transverses"];
 
   useEffect(() => {
     const initializeComponent = async () => {
       setIsLoading(true);
       try {
         const token = localStorage.getItem("_au_pr");
-        if (!token) {
-          console.error("No token found");
-          return;
-        }
+        if (!token) return;
 
         const decoded = decodeToken("pr");
-
-        if (!decoded?.jti) {
-          console.error("Invalid token: no JTI found");
-          return;
-        }
+        if (!decoded?.jti) return;
 
         const myId = decoded.jti;
         const subData: TSubordinate[] = await getMySubordinatesNameAndId(myId);
@@ -66,7 +55,7 @@ const Accueil = () => {
         };
 
         const allUsers = [...subData, me];
-        setSuborinates(allUsers);
+        setSubordinates(allUsers);
 
         const allUserIds = allUsers.map((user) => user.id);
         setSearch((prev) => ({ ...prev, ids: allUserIds }));
@@ -77,14 +66,11 @@ const Accueil = () => {
         setIsInitialized(true);
       }
     };
-    if (!isInitialized) {
-      initializeComponent();
-    }
+    if (!isInitialized) initializeComponent();
   }, [isInitialized]);
 
-  // Remove a selected user
   const handleRemoveUserSelectedInput = useCallback(
-    async (userId: string) => {
+    (userId: string) => {
       const updatedUsers = selectedUserInput.filter((user) => user.id !== userId);
       setSelectedUserInput(updatedUsers);
 
@@ -92,16 +78,11 @@ const Accueil = () => {
         updatedUsers.length > 0
           ? updatedUsers.map((user) => user.id)
           : subordinates.map((user) => user.id);
-
-      if (selectedUserInput.length === 1) {
-        // await fetchDashboardData(userIds);
-      }
     },
     [selectedUserInput, subordinates]
   );
 
-  // Reset all filters
-  const handleResetFilters = useCallback(async () => {
+  const handleResetFilters = useCallback(() => {
     const allUserIds = subordinates.map((user) => user.id);
 
     setSelectedUserInput([]);
@@ -110,28 +91,18 @@ const Accueil = () => {
       dateDebut: undefined,
       dateFin: undefined,
     });
-
-    // await fetchDashboardData(allUserIds);
   }, [subordinates]);
 
-  // Handle search button click
-  const handleSearch = useCallback(async () => {
+  const handleSearch = useCallback(() => {
     const userIds =
       selectedUserInput.length > 0
         ? selectedUserInput.map((user) => user.id)
         : subordinates.map((user) => user.id);
-
-    if (search.dateDebut !== undefined || search?.dateFin !== undefined || selectedUserInput.length > 0) {
-      // await fetchDashboardData(userIds);
-    }
-  }, [selectedUserInput, subordinates, search]);
+  }, [selectedUserInput, subordinates]);
 
   const availableSubordinates = subordinates.filter(
     (sub) => !selectedUserInput.some((selected) => selected.id === sub.id)
   );
-
-  const hasActiveFilters =
-    search.dateDebut !== undefined || search.dateFin !== undefined || selectedUserInput.length > 0;
 
   return (
     <DefaultLayout>
@@ -147,15 +118,8 @@ const Accueil = () => {
         <div className="filter-section">
           <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-8 gap-5">
             <div>
-              <CustomInput
-                type="text"
-                placeholder="Tous"
-                value={""}
-                label="Type de réunion"
-                rounded="medium"
-              />
+              <CustomInput type="text" placeholder="Tous" label="Type de réunion" rounded="medium" />
             </div>
-            {/* ======seul le manager ====== */}
             <CustomInputUserSpecifiedSearch
               label="Collaborateur"
               rounded="medium"
@@ -164,11 +128,9 @@ const Accueil = () => {
               userSelected={selectedUserInput}
               setUserSelected={setSelectedUserInput}
             />
-            {/* ======seul le manager ====== */}
             <CustomInput type="date" value={""} label="Du" rounded="medium" />
             <CustomInput type="date" value={""} label="Au" rounded="medium" />
 
-            {/* ========= DELETE FILTER START ============ */}
             <div className="flex items-end gap-2 mb-0.5">
               <div className="pb-2">
                 <button className="flex justify-center whitespace-nowrap text-sm gap-1 h-fit">
@@ -199,100 +161,47 @@ const Accueil = () => {
         {/* ============ FILTER END ============= */}
 
         {/* ============ SECTION MEETINGS + CARDS START ============= */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Colonne gauche : Mes réunions du mois */}
-          <div className="lg:col-span-1">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Mes réunions du mois</h3>
-            <MeetingsList
-              meetings={[
-                {
-                  title: "Réunion Transverse",
-                  dateDebut: "24 Juin",
-                  heureDebut: "9h",
-                  heureFin: "10h",
-                  role: "Organisateur" as const,
-                },
-                {
-                  title: "Réunion Transverse",
-                  dateDebut: "27 Juin",
-                  heureDebut: "8h",
-                  heureFin: "10h",
-                  role: "Organisateur" as const,
-                },
-                {
-                  title: "Réunion Projet",
-                  dateDebut: "27 Juin",
-                  heureDebut: "14h",
-                  heureFin: "16h",
-                  role: "Participant" as const,
-                },
-                {
-                  title: "Réunion Transverse",
-                  dateDebut: "30 Juin",
-                  heureDebut: "9h",
-                  heureFin: "10h",
-                  role: "Participant" as const,
-                },
-              ]}
-            />
-          </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Colonne gauche : Mes réunions du mois */}
+            <div>
+              <MeetingsList
+                meetings={[
+                  { title: "Réunion Transverse", dateDebut: "24 Juin", heureDebut: "9h", heureFin: "10h", role: "Organisateur" as const },
+                  { title: "Réunion Projet", dateDebut: "27 Juin", heureDebut: "14h", heureFin: "16h", role: "Participant" as const },
+                  { title: "Réunion Transverse", dateDebut: "30 Juin", heureDebut: "9h", heureFin: "10h", role: "Participant" as const },
+                ]}
+              />
+            </div>
 
-          {/* Colonne droite : 4 cards en 2x2 */}
-          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <MeetingCard
-              title="Réunions de la journée"
-              meetings={[
-                {
-                  dateDebut: "08:30",
-                  dateFin: "09:30",
-                  emplacement: "Salle A1",
-                  title: "Bâtiment Principal",
-                },
-                {
-                  dateDebut: "14:00",
-                  dateFin: "16:00",
-                  emplacement: "Salle B2",
-                },
-              ]}
-            />
-            <MeetingTimeCard
-              title="Temps passée en réunion"
-              value="4 h"
-              period="Aujourd'hui"
-              colorScheme="green"
-              icon="users"
-            />
-            <MeetingTimeCard
-              title="CR réunion général"
-              value="40 %"
-              period="Juin"
-              colorScheme="cyan"
-              icon="trending-up"
-            />
-            <MeetingTimeCard
-              title="Taux de participation"
-              value="85 %"
-              period="Cette semaine"
-              colorScheme="blue"
-              icon="target"
-            />
+            {/* Colonne centrale : Réunions de la journée */}
+            <div>
+              <MeetingCard
+                title="Réunions de la journée"
+                meetings={[
+                  { dateDebut: "08:30", dateFin: "09:30", emplacement: "Salle A1", title: "Bâtiment Principal" },
+                  { dateDebut: "14:00", dateFin: "16:00", emplacement: "Salle B2" },
+                ]}
+              />
+            </div>
+
+            {/* Colonne droite : 3 cards verticalement */}
+            <div className="flex flex-col gap-6">
+              <MeetingTimeCard title="Temps passé en réunion" value="4 h" period="Aujourd'hui" colorScheme="green" icon="users" />
+              <MeetingTimeCard title="CR réunion général" value="40 %" period="Juin" colorScheme="cyan" icon="trending-up" />
+              <MeetingTimeCard title="Taux de participation" value="85 %" period="Cette semaine" colorScheme="blue" icon="target" />
+            </div>
           </div>
         </div>
         {/* ============ SECTION MEETINGS + CARDS END ============= */}
 
         {/* ============ CHARTS START ========== */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-          {/* Bar chart */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Temps passée en réunion</h3>
-            <BarChart
-              labels={["04 Juin", "17 Juin", "22 Juin", "24 Juin"]}
-              data={[2.5, 4, 2.5, 2.5]}
-              maxY={5}
-            />
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Temps passé en réunion</h3>
+            <BarChart labels={["04 Juin", "17 Juin", "22 Juin", "24 Juin"]} data={[2.5, 4, 2.5, 2.5]} maxY={5} />
           </div>
 
-          {/* Pie chart */}
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Département utilisant la salle</h3>
             <div className="flex items-center justify-center">
