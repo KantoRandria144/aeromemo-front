@@ -165,13 +165,7 @@ const Accueil = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Colonne gauche : Mes réunions du mois */}
             <div>
-              <MeetingsList
-                meetings={[
-                  { title: "Réunion Transverse", dateDebut: "24 Juin", heureDebut: "9h", heureFin: "10h", role: "Organisateur" as const },
-                  { title: "Réunion Projet", dateDebut: "27 Juin", heureDebut: "14h", heureFin: "16h", role: "Participant" as const },
-                  { title: "Réunion Transverse", dateDebut: "30 Juin", heureDebut: "9h", heureFin: "10h", role: "Participant" as const },
-                ]}
-              />
+              <MeetingsList/>
             </div>
 
             {/* Colonne centrale : Réunions de la journée */}
