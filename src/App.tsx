@@ -13,6 +13,7 @@ import DetailsReunion from "./Pages/Reunion/DetailsReunion";
 import { IDecodedToken } from "./types/user";
 import { decodeToken } from "./services/Function/TokenService";
 import OutlookEvents from "./Pages/Reunion/Planification/OutlookEvents";
+import OutlookEventsList from "./Pages/Reunion/Planification/OutlookEventsList";
 
 
 const App = () => {
@@ -111,7 +112,7 @@ const App = () => {
         />
          <Route 
           path="/aeromemo/reunion/outlook" 
-          element={<OutlookEvents />} 
+          element={<OutlookEventsList />} 
         />
          <Route
           path="/aeromemo/planification"
