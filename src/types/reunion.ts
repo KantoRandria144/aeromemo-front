@@ -32,6 +32,7 @@ export interface UpdateReunion {
 }
 
 export interface Reunion {
+    outlookUrl(outlookUrl: any, arg1: string): void;
     qrCodeGenerated: string | null;
     id:string;
     titre: string;

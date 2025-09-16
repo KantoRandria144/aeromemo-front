@@ -8,6 +8,7 @@ import "notyf/notyf.min.css";
 import { saveReunion, formatTeamsInfo, copyTeamsInfoToClipboard } from "../../services/Reunion/ReunionServices";
 import axios from "axios";
 import { getThreeInitials } from "../../services/Function/UserFonctionService";
+import { useNavigate } from "react-router-dom";
 
 const ROOMS = ["Salle R+1", "Salle R+3", "Salle R+4", "Salle DSI", "Salle CDOU", "Salle mezzanine"] as const;
 
@@ -206,6 +207,7 @@ const CreateReunion = () => {
 
   const token = localStorage.getItem("_au_pr") || "";
   const decoded = parseJwt(token);
+  const navigate = useNavigate();
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -266,8 +268,8 @@ const CreateReunion = () => {
       if (copied) {
         notyf.success("Informations Teams copiées dans le presse-papier !");
       }
-      
       setShowCalendarModal(true);
+      //navigate(`/aeromemo/reunion/${response.reunion.id}`);
       notyf.success("Réunion créée avec succès !");
       
       // Réinitialiser le formulaire

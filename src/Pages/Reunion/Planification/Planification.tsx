@@ -12,13 +12,16 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { LayoutGrid, CalendarDays } from "lucide-react";
+import { outlookService, OutlookEvent } from "../../../services/Reunion/outlookService";
 
-const Planification =  ()  => {
+const Planification = () => {
     const navigate = useNavigate();
     const [activeView, setActiveView] = useState<"list" | "calendar">("list");
-    const [activeTab, setActiveTab] = useState<"all" | "mine">("all");
+    const [activeTab, setActiveTab] = useState<"all" | "mine" | "outlook">("all");
     const [reunions, setReunions] = useState<Reunion[]>([]);
+    const [outlookEvents, setOutlookEvents] = useState<OutlookEvent[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+    const [outlookLoading, setOutlookLoading] = useState<boolean>(false);
     const [selectedReunions, setSelectedReunions] = useState<string[]>([]);
     const [isAllSelected, setIsAllSelected] = useState(false);
     const [filters, setFilters] = useState({
@@ -28,7 +31,7 @@ const Planification =  ()  => {
     });
 
     useEffect(() => {
-        const fetchReunions = async () => {
+        const fetchData = async () => {
             try {
                 setLoading(true);
                 let data: Reunion[] = [];
@@ -43,6 +46,17 @@ const Planification =  ()  => {
                     } else {
                         console.warn("Aucun userId trouvé dans le localStorage");
                     }
+                } else if (activeTab === "outlook") {
+                    // Les événements Outlook seront chargés séparément
+                    setOutlookLoading(true);
+                    try {
+                        const events = await outlookService.getEvents();
+                        setOutlookEvents(events);
+                    } catch (error) {
+                        console.error("Erreur lors du chargement des événements Outlook:", error);
+                    } finally {
+                        setOutlookLoading(false);
+                    }
                 }
 
                 setReunions(data);
@@ -54,7 +68,7 @@ const Planification =  ()  => {
             }
         };
 
-        fetchReunions();
+        fetchData();
     }, [activeTab]); 
 
     const handleSelectAllReunions = () => {
@@ -102,16 +116,34 @@ const Planification =  ()  => {
         return true;
     });
 
-    const events = filteredReunions.map(reunion => ({
-        id: reunion.id,
-        title: reunion.titre,
-        start: reunion.dateDebut,
-        end: reunion.dateFin || reunion.dateDebut,
-        extendedProps: {
-            etat: reunion.etat,
-            //organisateur: reunion.organisateur
-        }
-    }));
+    const filteredOutlookEvents = outlookEvents.filter(event => {
+        if (filters.dateDebut && new Date(event.start.dateTime) < new Date(filters.dateDebut)) return false;
+        if (filters.dateFin && new Date(event.end.dateTime) > new Date(filters.dateFin)) return false;
+        return true;
+    });
+
+    const events = [
+        ...filteredReunions.map(reunion => ({
+            id: reunion.id,
+            title: reunion.titre,
+            start: reunion.dateDebut,
+            end: reunion.dateFin || reunion.dateDebut,
+            extendedProps: {
+                etat: reunion.etat,
+                type: 'reunion'
+            }
+        })),
+        ...filteredOutlookEvents.map(event => ({
+            id: event.id,
+            title: event.subject || 'Sans titre',
+            start: event.start.dateTime,
+            end: event.end.dateTime,
+            extendedProps: {
+                type: 'outlook',
+                organizer: event.organizer?.emailAddress.name
+            }
+        }))
+    ];
 
     // Composant pour afficher un participant avec la couleur appropriée
     const ParticipantAvatar = ({ nom, type, showTooltip = true }: { 
@@ -156,31 +188,55 @@ const Planification =  ()  => {
                 }}
                 events={events}
                 eventClick={(info) => {
-                    navigate(`/aeromemo/reunion/${info.event.id}`);
+                    if (info.event.extendedProps.type === 'reunion') {
+                        navigate(`/aeromemo/reunion/${info.event.id}`);
+                    } else {
+                        // Pour les événements Outlook, ouvrir le lien web s'il existe
+                        const outlookEvent = outlookEvents.find(e => e.id === info.event.id);
+                        if (outlookEvent?.webLink) {
+                            window.open(outlookEvent.webLink, '_blank');
+                        }
+                    }
                 }}
                 height="70vh"
                 eventContent={(eventInfo) => (
-                    <div className="p-1">
+                    <div className={`p-1 ${eventInfo.event.extendedProps.type === 'outlook' ? 'bg-blue-100 border-l-4 border-blue-500' : ''}`}>
                         <b>{eventInfo.event.title}</b>
                         <div className="text-xs">
                             {eventInfo.timeText}
                         </div>
+                        {eventInfo.event.extendedProps.type === 'outlook' && (
+                            <div className="text-xs text-blue-600">Outlook</div>
+                        )}
                     </div>
                 )}
             />
         </div>
     );
 
+    // Fonction pour formater la date des événements Outlook
+    const formatDateTime = (dateTime: string, timeZone: string) => {
+        return new Date(dateTime).toLocaleString('fr-FR', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: timeZone
+        });
+    };
+
     return (
         <DefaultLayout>
             <div className="mx-2 py-4 md:mx-10">
                 <>
+                 
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-                        <Breadcrumb
+                        {/* <Breadcrumb
                             paths={[{ name: "Liste des Projets", to: "/aeromemo/planification" }]}
-                        />
-                        
-                       <div className="flex items-center gap-2 mt-4">
+                        /> */}
+                         <div className="">
                             <nav className="flex items-center gap-2">
                                 <button
                                 onClick={() => setActiveView("list")}
@@ -190,8 +246,8 @@ const Planification =  ()  => {
                                     : "text-black hover:text-green-600"
                                 }`}
                                 >
-                                <LayoutGrid size={18} />
-                                <span>Tableau</span>
+                                <LayoutGrid size={25} />
+                                
                                 </button>
 
                                 <button
@@ -202,11 +258,12 @@ const Planification =  ()  => {
                                     : "text-black hover:text-green-600"
                                 }`}
                                 >
-                                <CalendarDays size={18} />
-                                <span>Calendrier</span>
+                                <CalendarDays size={25} />
+                               
                                 </button>
                             </nav>
                         </div>
+                     
 
                         <button
                             onClick={() => navigate("/aeromemo/créer-réunion")}
@@ -228,7 +285,7 @@ const Planification =  ()  => {
                                 ></path>
                             </svg>
                             Créer un nouveau réunion
-                        </button>
+                        </button> 
                     </div>
 
                     <div className="bg-white min-h-[80vh] pt-2 shadow-1 rounded-lg border border-zinc-200 dark:border-strokedark dark:bg-boxdark">
@@ -253,6 +310,16 @@ const Planification =  ()  => {
                                     }`}
                                 >
                                     Mes réunions
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab("outlook")}
+                                    className={`px-4 py-2 rounded-lg ${
+                                        activeTab === "outlook"
+                                            ? "bg-green-600 text-white"
+                                            : "hover:text-green-600"
+                                    }`}
+                                >
+                                    Événements Outlook
                                 </button>
                             </nav>
                         </div>
@@ -320,61 +387,65 @@ const Planification =  ()  => {
                         ) : (
                             <>
                                 {/* Bulk actions when items are selected */}
-                                <div
-                                    className={`mt-2 border-primaryGreen border dark:border-formStrokedark bg-white dark:bg-boxdark z-40 relative px-2 flex items-center justify-between transition-transform duration-200 ease-in-out transform ${
-                                        selectedReunions.length > 0
-                                            ? "scale-y-100 opacity-100"
-                                            : "scale-y-0 opacity-0"
-                                    }`}
-                                >
-                                    <div>
-                                        {selectedReunions.length === 1
-                                            ? "1 élément sélectionné"
-                                            : `${selectedReunions.length} éléments sélectionnés`}
+                                {activeTab !== "outlook" && (
+                                    <div
+                                        className={`mt-2 border-primaryGreen border dark:border-formStrokedark bg-white dark:bg-boxdark z-40 relative px-2 flex items-center justify-between transition-transform duration-200 ease-in-out transform ${
+                                            selectedReunions.length > 0
+                                                ? "scale-y-100 opacity-100"
+                                                : "scale-y-0 opacity-0"
+                                        }`}
+                                    >
+                                        <div>
+                                            {selectedReunions.length === 1
+                                                ? "1 élément sélectionné"
+                                                : `${selectedReunions.length} éléments sélectionnés`}
+                                        </div>
+                                        <div>
+                                            <button
+                                                onClick={() => {
+                                                    // Handle bulk actions here
+                                                }}
+                                                className="mb-1 mt-1 min-w-20 w-full text-sm py-2.5 px-3 md:h-10 border flex items-center justify-between border-stroke dark:border-formStrokedark rounded-lg text-left text-black"
+                                            >
+                                                Actions
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <button
-                                            onClick={() => {
-                                                // Handle bulk actions here
-                                            }}
-                                            className="mb-1 mt-1 min-w-20 w-full text-sm py-2.5 px-3 md:h-10 border flex items-center justify-between border-stroke dark:border-formStrokedark rounded-lg text-left text-black"
-                                        >
-                                            Actions
-                                        </button>
-                                    </div>
-                                </div>
-
+                                )}
+                             
                                 <div className="max-w-full overflow-x-auto">
                                     <table className="w-full text-sm hidden md:table table-auto">
                                         <thead className="pt-5 rounded-t-xl bg-primaryGreen dark:bg-darkgreen">
                                             <tr className="border border-stone-300 border-opacity-[0.1] border-r-0 border-l-0 text-white text-left">
-                                                <th className="pl-2">
-                                                    <button
-                                                        onClick={handleSelectAllReunions}
-                                                        className="cursor-pointer border w-5 h-5"
-                                                    >
-                                                        <svg
-                                                            width="18"
-                                                            height="17"
-                                                            viewBox="0 0 24 24"
-                                                            fill="none"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            className={`${
-                                                                selectedReunions.length === reunions.length
-                                                                    ? "visible"
-                                                                    : "invisible"
-                                                            }`}
+                                                {activeTab !== "outlook" && (
+                                                    <th className="pl-2">
+                                                        <button
+                                                            onClick={handleSelectAllReunions}
+                                                            className="cursor-pointer border w-5 h-5"
                                                         >
-                                                            <path
-                                                                d="M4 12.6111L8.92308 17.5L20 6.5"
-                                                                stroke="#fff"
-                                                                strokeWidth="2"
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                            />
-                                                        </svg>
-                                                    </button>
-                                                </th>
+                                                            <svg
+                                                                width="18"
+                                                                height="17"
+                                                                viewBox="0 0 24 24"
+                                                                fill="none"
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                className={`${
+                                                                    selectedReunions.length === reunions.length
+                                                                        ? "visible"
+                                                                        : "invisible"
+                                                                }`}
+                                                            >
+                                                                <path
+                                                                    d="M4 12.6111L8.92308 17.5L20 6.5"
+                                                                    stroke="#fff"
+                                                                    strokeWidth="2"
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                />
+                                                            </svg>
+                                                        </button>
+                                                    </th>
+                                                )}
                                                 {activeTab === "all" ? (
                                                     <>
                                                         <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
@@ -387,11 +458,6 @@ const Planification =  ()  => {
                                                                 <span>Titre</span>
                                                             </div>
                                                         </th>
-                                                        {/* <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
-                                                            <div className="flex items-center gap-1">
-                                                                <span>Organisateur</span>
-                                                            </div>
-                                                        </th> */}
                                                         <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
                                                             <div className="flex items-center gap-1">
                                                                 <span>Participants</span>
@@ -403,7 +469,7 @@ const Planification =  ()  => {
                                                             </div>
                                                         </th>
                                                     </>
-                                                ) : (
+                                                ) : activeTab === "mine" ? (
                                                     <>
                                                         <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
                                                             <div className="flex items-center gap-1">
@@ -423,6 +489,29 @@ const Planification =  ()  => {
                                                         <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
                                                             <div className="flex items-center gap-1">
                                                                 <span>Statut</span>
+                                                            </div>
+                                                        </th>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
+                                                            <div className="flex items-center gap-1">
+                                                                <span>Date</span>
+                                                            </div>
+                                                        </th>
+                                                        <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
+                                                            <div className="flex items-center gap-1">
+                                                                <span>Titre</span>
+                                                            </div>
+                                                        </th>
+                                                        <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
+                                                            <div className="flex items-center gap-1">
+                                                                <span>Organisateur</span>
+                                                            </div>
+                                                        </th>
+                                                        <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
+                                                            <div className="flex items-center gap-1">
+                                                                <span>Participants</span>
                                                             </div>
                                                         </th>
                                                     </>
@@ -470,9 +559,6 @@ const Planification =  ()  => {
                                                 <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
                                                     <p className="text-black text-justify dark:text-white font-bold">{reunion.titre}</p>
                                                 </td>
-                                                {/* <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
-                                                    {/* Organisateur 
-                                                </td> */}
                                                 <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
                                                     {/* Participants OBLIGATOIRES et FACULTATIFS */}
                                                     <div className="flex -ml-2">
@@ -549,7 +635,29 @@ const Planification =  ()  => {
                                             filteredReunions.map((reunion) => (
                                                 <tr key={reunion.id} className="border-b hover:bg-gray-50 dark:hover:bg-boxdark2">
                                                     <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark">
-
+                                                        <button
+                                                            className="cursor-pointer border w-5 h-5"
+                                                            onClick={() => handleSelectReunion(reunion.id)}
+                                                        >
+                                                            <svg
+                                                                width="18"
+                                                                height="17"
+                                                                viewBox="0 0 24 24"
+                                                                fill="none"
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                className={`${
+                                                                    selectedReunions.includes(reunion.id) ? "visible" : "invisible"
+                                                                }`}
+                                                            >
+                                                                <path
+                                                                    d="M4 12.6111L8.92308 17.5L20 6.5"
+                                                                    className="stroke-black-2 dark:stroke-whiten"
+                                                                    strokeWidth="2"
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                />
+                                                            </svg>
+                                                        </button>
                                                     </td>
                                                 <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark">
                                                     {new Date(reunion.dateDebut).toLocaleDateString()}
@@ -615,122 +723,85 @@ const Planification =  ()  => {
                                                 </td>
                                             </tr>
                                             )
-                                        ) : null}
-                                        </tbody>
-
-                                    </table>
-                                </div>
-                                
-                                {/* Version mobile */}
-                                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 p-4 md:hidden">
-                                    {activeTab === "all" ? (
-                                        filteredReunions && filteredReunions.length > 0 ? (
-                                            filteredReunions.map((reunion) => (
-                                                <div
-                                                    key={reunion.id}
-                                                    className="w-full rounded-xl bg-white dark:bg-green-900 shadow-md p-4 transition-colors duration-300"
-                                                >
-                                                    {/* Header */}
-                                                    <div className="flex items-center justify-between">
-                                                        <div>
-                                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                                                {reunion.titre}
-                                                            </h3>
-                                                            <p className="text-sm text-gray-500 dark:text-gray-300">
-                                                                {new Date(reunion.dateDebut).toLocaleDateString()}
-                                                            </p>
-                                                        </div>
-                                                        <span
-                                                            className={`font-semibold rounded-md text-center py-1 px-2 text-xs w-fit ${
-                                                                reunion.etat === "Planifié"
-                                                                    ? "bg-green-100 border text-green-600 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700"
-                                                                    : reunion.etat === "Annulé"
-                                                                    ? "bg-red-100 border text-red-600 border-red-300 dark:bg-red-900 dark:text-red-300 dark:border-red-700"
-                                                                    : "bg-gray-100 border text-gray-600 border-gray-300 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700"
-                                                            }`}
-                                                        >
-                                                            {reunion.etat}
-                                                        </span>
-                                                    </div>
-
-                                                    {/* Organisateur */}
-                                                    <div className="mt-3">
-                                                        <p className="text-sm text-gray-500 dark:text-gray-300">
-                                                            Organisateur :
-                                                        </p>
-                                                        <p className="text-base font-medium text-gray-900 dark:text-white">
-                                                            Jean Dupont
-                                                        </p>
-                                                    </div>
-
-                                                    {/* Participants avec le nouveau style */}
-                                                    <div className="mt-4">
-                                                        <p className="text-sm text-gray-500 dark:text-gray-300 mb-2">
-                                                            Participants :
-                                                        </p>
-                                                        <div className="flex -ml-2">
-                                                            {/* Participants obligatoires */}
-                                                            {reunion.participantsObligatoires?.slice(0, 3).map((nom, index) => (
-                                                                <ParticipantAvatar
-                                                                    key={index}
-                                                                    nom={nom}
-                                                                    type="obligatoire"
-                                                                />
-                                                            ))}
-                                                            
-                                                            {/* Participants facultatifs */}
-                                                            {reunion.participantsFacultatifs?.slice(0, 2).map((nom, index) => (
-                                                                <ParticipantAvatar
-                                                                    key={index}
-                                                                    nom={nom}
-                                                                    type="facultatif"
-                                                                />
-                                                            ))}
-                                                            
-                                                            {/* Indicateur du nombre total de participants */}
-                                                            {(reunion.participantsObligatoires?.length > 3 || reunion.participantsFacultatifs?.length > 2) && (
-                                                                <div className="relative group -ml-2 first:ml-0">
-                                                                    <p className="text-slate-50 border relative bg-gray-400 p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full dark:text-white dark:border-transparent">
-                                                                        +{((reunion.participantsObligatoires?.length - 3) > 0 ? reunion.participantsObligatoires.length - 3 : 0) + 
-                                                                          ((reunion.participantsFacultatifs?.length - 2) > 0 ? reunion.participantsFacultatifs.length - 2 : 0)}
-                                                                    </p>
-                                                                    <div className="absolute whitespace-nowrap text-xs hidden group-hover:block bg-white text-black p-2 border border-whiten shadow-5 rounded-md z-999 top-[-35px] left-1/2 transform -translate-x-1/2">
-                                                                        <div>
-                                                                            <p className="font-semibold">Participants supplémentaires:</p>
-                                                                            {reunion.participantsObligatoires?.length > 3 && (
-                                                                                <p>{reunion.participantsObligatoires.length - 3} obligatoire(s)</p>
-                                                                            )}
-                                                                            {reunion.participantsFacultatifs?.length > 2 && (
-                                                                                <p>{reunion.participantsFacultatifs.length - 2} facultatif(s)</p>
-                                                                            )}
-                                                                        </div>
+                                        ) : activeTab === "outlook" ? (
+                                            outlookLoading ? (
+                                                <tr>
+                                                    <td colSpan={6} className="text-center py-4">
+                                                        Chargement des événements Outlook...
+                                                    </td>
+                                                </tr>
+                                            ) : filteredOutlookEvents && filteredOutlookEvents.length > 0 ? (
+                                                filteredOutlookEvents.map((event) => (
+                                                    <tr key={event.id} className="border-b hover:bg-gray-50 dark:hover:bg-boxdark2">
+                                                        <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
+                                                            {formatDateTime(event.start.dateTime, event.start.timeZone)}
+                                                        </td>
+                                                        <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
+                                                            <p className="text-black text-justify dark:text-white font-bold">{event.subject || 'Sans titre'}</p>
+                                                            {event.bodyPreview && (
+                                                                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                                                                    {event.bodyPreview.substring(0, 100)}...
+                                                                </p>
+                                                            )}
+                                                        </td>
+                                                        <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
+                                                            {event.organizer?.emailAddress.name || 'Non spécifié'}
+                                                        </td>
+                                                        <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
+                                                            {event.attendees && event.attendees.length > 0 ? (
+                                                                <div className="flex flex-col">
+                                                                    <span>{event.attendees.length} participant(s)</span>
+                                                                    <div className="flex -ml-2 mt-1">
+                                                                        {event.attendees.slice(0, 3).map((attendee, index) => (
+                                                                            <div key={index} className="relative group -ml-2 first:ml-0">
+                                                                                <p className="text-slate-50 border relative bg-cyan-100 text-cyan-600 border-cyan-300 p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full dark:bg-cyan-900 dark:text-cyan-300 dark:border-cyan-700">
+                                                                                    {getThreeInitials(attendee.emailAddress.name)}
+                                                                                </p>
+                                                                                <div className="absolute whitespace-nowrap text-xs hidden group-hover:block bg-white text-black p-2 border border-whiten shadow-5 rounded-md z-999 top-[-35px] left-1/2 transform -translate-x-1/2">
+                                                                                    <p>{attendee.emailAddress.name}</p>
+                                                                                    <p className="text-xs">{attendee.emailAddress.address}</p>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                        {event.attendees.length > 3 && (
+                                                                            <div className="relative group -ml-2 first:ml-0">
+                                                                                <p className="text-slate-50 border relative bg-gray-400 p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full dark:text-white dark:border-transparent">
+                                                                                    +{event.attendees.length - 3}
+                                                                                </p>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 </div>
+                                                            ) : (
+                                                                'Aucun participant'
                                                             )}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Bouton Voir */}
-                                                    <div className="mt-4 text-right">
-                                                        <button
-                                                            onClick={() => navigate(`/aeromemo/reunion/${reunion.id}`)}
-                                                            className="text-primaryGreen hover:underline dark:text-darkgreen"
-                                                        >
-                                                            Voir
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <div className="col-span-full text-center py-6 text-gray-600 dark:text-gray-300">
-                                                Aucune réunion trouvée
-                                            </div>
-                                        )
-                                    ) : (
-                                        <div className="col-span-full text-center py-6 text-gray-600 dark:text-gray-300">
-                                            Aucune de vos réunions trouvée
-                                        </div>
-                                    )}
+                                                        </td>
+                                                        {/* <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
+                                                            {event.webLink ? (
+                                                                <a 
+                                                                    href={event.webLink} 
+                                                                    target="_blank" 
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-blue-600 hover:underline dark:text-blue-400"
+                                                                >
+                                                                    Ouvrir dans Outlook
+                                                                </a>
+                                                            ) : (
+                                                                <span className="text-gray-500">Aucun lien disponible</span>
+                                                            )}
+                                                        </td> */}
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan={6} className="text-center py-4">
+                                                        Aucun événement Outlook trouvé
+                                                    </td>
+                                                </tr>
+                                            )
+                                        ) : null}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </>
                         )}
