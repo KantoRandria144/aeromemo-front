@@ -171,11 +171,7 @@ const Accueil = () => {
             {/* Colonne centrale : Réunions de la journée */}
             <div>
               <MeetingCard
-                title="Réunions de la journée"
-                meetings={[
-                  { dateDebut: "08:30", dateFin: "09:30", emplacement: "Salle A1", title: "Bâtiment Principal" },
-                  { dateDebut: "14:00", dateFin: "16:00", emplacement: "Salle B2" },
-                ]}
+               
               />
             </div>
 

@@ -149,7 +149,7 @@ const MeetingsList: React.FC = () => {
                         return (
                             <div 
                                 key={index}
-                                className={`bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border-l-4 ${
+                                className={`bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm  ${
                                     isTodayMeeting 
                                         ? "border-blue-500" 
                                         : isPastMeeting 
@@ -190,14 +190,15 @@ const MeetingsList: React.FC = () => {
                                     </div>
                                     <div className="flex items-center mb-1">
                                         <Clock size={14} className="mr-2" />
-                                        {formatTime(reunion.heureDebut)} - {formatTime(reunion.heureFin)}
+                                        {formatTime(reunion.heureDebut)} - {formatTime(reunion.heureFin)}  |  <MapPin size={14} className="mr-2 ml-2" />
+                                            {reunion.emplacement}
                                     </div>
-                                    {reunion.emplacement && (
+                                    {/* {reunion.emplacement && (
                                         <div className="flex items-center mb-1">
                                             <MapPin size={14} className="mr-2" />
                                             {reunion.emplacement}
                                         </div>
-                                    )}
+                                    )} */}
                                 </div>
                             </div>
                         );
