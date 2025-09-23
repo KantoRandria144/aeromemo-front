@@ -28,7 +28,7 @@ const PerPageInput = ({
           className="w-18 rounded-md  border h-8 md:h-8 flex justify-center items-center text-center md:text-xs  bg-transparent   text-black dark:text-gray  outline-none focus:border-primaryGreen focus-visible:shadow-none dark:border dark:border-formStrokedark dark:focus:border-primaryGreen"
           value={`${entriesPerPage.toString()}`}
           onChange={(e) => {
-            const value = parseInt(e.target.value, 10);
+            const value = parseInt(e.target.value, 5);
             if (!isNaN(value) && value > 0) {
               setEntriesPerPage(value);
               setPage((prev) => ({

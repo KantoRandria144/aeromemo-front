@@ -6,9 +6,12 @@ export interface CreateReunion {
     heureDebut: string;
     heureFin: string;
     emplacement: string;
+    etat: number; 
+    type: number; 
     participantsObligatoires?:string[];
     participantsFacultatifs?:string[];
-     participants?: ParticipantDTO[];
+    participants?: ParticipantDTO[];
+    userId?: string;
 }
 
 export type ParticipantDTO = {
@@ -28,7 +31,8 @@ export interface UpdateReunion {
     dateFin:string;
     heureDebut:string;
     heureFin:string;
-    etat:EtatReunion;
+    etat: number;
+    type: number;
 }
 
 export interface Reunion {
@@ -42,7 +46,8 @@ export interface Reunion {
     heureDebut:string;
     heureFin:string;
     emplacement?:string;
-    etat:EtatReunion;
+    etat: number; 
+    type: number; 
     participants?: ParticipantDTO[];
     participantsObligatoires: string[];  
     participantsFacultatifs: string[]; 
@@ -50,12 +55,17 @@ export interface Reunion {
     teamsMeetingId?: string;
     teamsSecretCode?: string;
     outlookEventId?:string;
+    userId?: string;
 }
 export enum EtatReunion {
     Planifie="Planifié",
-    EnCours="EnCours",
+    EnCours="En Cours",
     Termine="Terminé",
     Annule="Annulé",
+}
+export enum TypeReunion {
+    Transverse = 1,
+    Projet = 2,
 }
 
 export interface Participant {

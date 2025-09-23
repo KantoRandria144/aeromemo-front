@@ -4,7 +4,7 @@ import Breadcrumb from "../../../components/BreadCrumbs/BreadCrumb";
 import CustomSelect from "../../../components/UIElements/Select/CustomSelect";
 import CustomInput from "../../../components/UIElements/Input/CustomInput";
 import DefaultLayout from "../../../components/layout/DefaultLayout";
-import { Reunion } from "../../../types/reunion";
+import { EtatReunion, Reunion } from "../../../types/reunion";
 import { getMyReunions, listAllReunion } from "../../../services/Reunion/ReunionServices";
 import { getThreeInitials } from "../../../services/Function/UserFonctionService";
 import FullCalendar from "@fullcalendar/react";
@@ -14,6 +14,8 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { LayoutGrid, CalendarDays } from "lucide-react";
 import frLocale from "@fullcalendar/core/locales/fr";
 import { outlookService, OutlookEvent } from "../../../services/Reunion/outlookService";
+import PerPageInput from "../../../components/UIElements/PerPageInput";
+import Pagination from "../../../components/Tables/Pagination";
 
 const Planification = () => {
     const navigate = useNavigate();
@@ -25,6 +27,9 @@ const Planification = () => {
     const [outlookLoading, setOutlookLoading] = useState<boolean>(false);
     const [selectedReunions, setSelectedReunions] = useState<string[]>([]);
     const [isAllSelected, setIsAllSelected] = useState(false);
+    const [entriesPerPage, setEntriesPerPage] = useState(5);
+    const [actualPage, setActualPage] = useState(1);
+    const [pageNumbers, setPageNumbers] = useState(1);
     const [filters, setFilters] = useState({
         typeReunion: "",
         dateDebut: "",
@@ -61,16 +66,22 @@ const Planification = () => {
                 }
 
                 setReunions(data);
+
+                const totalItems = activeTab === "outlook" ? outlookEvents.length : data.length;
+                setPageNumbers(Math.ceil(totalItems / entriesPerPage));
             } catch (error) {
                 console.error("Erreur lors du chargement des réunions:", error);
                 setReunions([]);
+                setPageNumbers(1);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchData();
-    }, [activeTab]); 
+    }, [activeTab, entriesPerPage]); 
+
+   
 
     const handleSelectAllReunions = () => {
         if (reunions) {
@@ -146,6 +157,14 @@ const Planification = () => {
         }))
     ];
 
+     useEffect(() => {
+        const totalItems = activeTab === "outlook" ? filteredOutlookEvents.length : filteredReunions.length;
+        setPageNumbers(Math.ceil(totalItems / entriesPerPage));
+    }, [filteredReunions, filteredOutlookEvents, entriesPerPage, activeTab]);
+
+    const getPaginatedData = () => {
+        
+    }
     // Composant pour afficher un participant avec la couleur appropriée
     const ParticipantAvatar = ({ nom, type, showTooltip = true }: { 
     nom: string; 
@@ -614,11 +633,11 @@ const formatDateTime = (dateTime: string, timeZone: string) => {
                                                 <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
                                                     <p
                                                     className={`font-semibold rounded-md text-center py-1 px-2 text-xs w-fit ${
-                                                        reunion.etat === "Planifié"
-                                                        ? "bg-green-100 border text-green-600 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700"
-                                                        : reunion.etat === "Annulé"
-                                                        ? "bg-red-100 border text-red-600 border-red-300 dark:bg-red-900 dark:text-red-300 dark:border-red-700"
-                                                        : "bg-gray-100 border text-gray-600 border-gray-300 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700"
+                                                        reunion.etat === EtatReunion.Planifie
+                                                            ? "bg-green-100 border text-green-600 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700"
+                                                        : reunion.etat === EtatReunion.Annule
+                                                            ? "bg-red-100 border text-red-600 border-red-300 dark:bg-red-900 dark:text-red-300 dark:border-red-700"
+                                                            : "bg-gray-100 border text-gray-600 border-gray-300 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700"
                                                     }`}
                                                     >
                                                     {reunion.etat}
@@ -830,6 +849,18 @@ const formatDateTime = (dateTime: string, timeZone: string) => {
                                 </div>
                             </>
                         )}
+                    </div>
+                    <div className="flex flex-col flex-wrap md:flex-row justify-end px-4 items-center">
+                        {/* <PerPageInput
+                            entriesPerPage={entriesPerPage}
+                            setEntriesPerPage={setEntriesPerPage}
+                            setPage={setActualPage}
+                        />
+                        <Pagination
+                            actualPage={actualPage}
+                            setActualPage={setActualPage}
+                            pageNumbers={pageNumbers}
+                        /> */}
                     </div>
                 </>
             </div>

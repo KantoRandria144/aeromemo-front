@@ -14,6 +14,7 @@ import { IDecodedToken } from "./types/user";
 import { decodeToken } from "./services/Function/TokenService";
 import OutlookEvents from "./Pages/Reunion/Planification/OutlookEvents";
 import OutlookEventsList from "./Pages/Reunion/Planification/OutlookEventsList";
+import EditReunion from "./Pages/Reunion/EditReunion";
 
 
 const App = () => {
@@ -105,6 +106,10 @@ const App = () => {
               <CreateReunion/>
             </>
           }
+        />
+        <Route 
+          path="/aeromemo/reunion/modification/:id"
+          element={<EditReunion />}
         />
         <Route 
           path="/aeromemo/reunion/:id" 

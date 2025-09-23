@@ -12,6 +12,7 @@ export type SaveReunionPayload = {
     heureFin: string;           
     emplacement: string;
     etat: number;
+    type: number;
     participantsObligatoires: string[];  // seulement les emails
     participantsFacultatifs: string[]; 
     userId: string;
@@ -40,6 +41,9 @@ export const saveReunion = async (payload: SaveReunionPayload): Promise<SaveReun
         });
 
         console.log("Réponse au serveur:", res.data);
+        if (res.data.reunion && res.data.reunion.id) {
+            await autoConfirmCreatorPresence(res.data.reunion.id);
+        }
         return res.data;
     } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -77,6 +81,44 @@ export const saveReunion = async (payload: SaveReunionPayload): Promise<SaveReun
     //   throw error;
     // }
   };
+
+export const updateReunionService = async (id: string, payload: SaveReunionPayload): Promise<SaveReunionResponse> => {
+    try {
+        console.log("Payload de mise à jour envoyé au serveur:", JSON.stringify(payload, null, 2));
+        const token = localStorage.getItem("_au_pr"); 
+
+        const res = await axios.put(`${endPoint}/api/reunion/${id}`, payload, {
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                'Content-type': 'application/json'
+            }
+        });
+
+        console.log("Réponse de mise à jour:", res.data);
+        return res.data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error("Erreur détaillée lors de la mise à jour:", error.response?.data);
+        }
+        throw error;
+    }
+};
+
+export const getReunionByIdService = async (id: string): Promise<Reunion> => {
+    try {
+        const token = localStorage.getItem("_au_pr");
+        const response = await axios.get(`${endPoint}/api/reunion/${id}`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json"
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Erreur lors de la récupération de la réunion:", error);
+        throw error;
+    }
+};
 
 export const buildOutlookUrl = (reunion: Reunion): string => {
     if (reunion.outlookEventId) {
@@ -371,3 +413,26 @@ export const getOutlookEvents = async (): Promise<any[]> => {
     throw error;
   }
 };
+
+// Ajouter cette fonction pour confirmer automatiquement la présence du créateur
+export const autoConfirmCreatorPresence = async (reunionId: string): Promise<boolean> => {
+    try {
+        const token = localStorage.getItem("_au_pr");
+        const response = await axios.post(
+            `${endPoint}/api/reunion/${reunionId}/confirm-presence`,
+            {},
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-type': 'application/json'
+                }
+            }
+        );
+        return true;
+    } catch (error) {
+        console.error("Erreur lors de la confirmation automatique:", error);
+        return false;
+    }
+};
+
+

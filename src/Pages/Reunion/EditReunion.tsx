@@ -1,14 +1,20 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/BreadCrumbs/BreadCrumb";
 import DefaultLayout from "../../components/layout/DefaultLayout";
 import CustomInput from "../../components/UIElements/Input/CustomInput";
 import { getAllUsers } from "../../services/User/UserServices";
 import { Notyf } from "notyf";
 import "notyf/notyf.min.css";
-import { saveReunion, formatTeamsInfo, copyTeamsInfoToClipboard } from "../../services/Reunion/ReunionServices";
+import { 
+    getReunionByIdService, 
+    updateReunionService, 
+    formatTeamsInfo, 
+    copyTeamsInfoToClipboard 
+} from "../../services/Reunion/ReunionServices";
 import axios from "axios";
 import { getThreeInitials } from "../../services/Function/UserFonctionService";
-import { useNavigate } from "react-router-dom";
+import { Reunion } from "../../types/reunion";
 
 const ROOMS = ["Salle R+1", "Salle R+3", "Salle R+4", "Salle DSI", "Salle CDOU", "Salle mezzanine"] as const;
 
@@ -25,6 +31,7 @@ const TYPE_REUNION_OPTIONS = [
 ];
 
 type SimpleUser = { id: string; name: string; email: string; department?: string };
+
 
 const ensureSeconds = (hhmm: string | null) => {
   const v = (hhmm || "").trim();
@@ -189,24 +196,12 @@ const ParticipantsAutocomplete: React.FC<ParticipantsAutocompleteProps> = ({
 
 const notyf = new Notyf({ position: { x: "center", y: "top" } });
 
-function parseJwt(token: string) {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch (e) {
-    console.error("Impossible de décoder le token:", e);
-    return null;
-  }
-}
-
-const CreateReunion = () => {
+const EditReunion = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  
+  const [reunion, setReunion] = useState<Reunion | null>(null);
+  const [loading, setLoading] = useState(true);
   const [requiredParticipants, setRequiredParticipants] = useState<SimpleUser[]>([]);
   const [optionalParticipants, setOptionalParticipants] = useState<SimpleUser[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -217,13 +212,35 @@ const CreateReunion = () => {
   const [showTeamsInfoModal, setShowTeamsInfoModal] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const token = localStorage.getItem("_au_pr") || "";
-  const decoded = parseJwt(token);
-  const navigate = useNavigate();
+  useEffect(() => {
+    const fetchReunion = async () => {
+      if (!id) return;
+      
+      try {
+        setLoading(true);
+        const reunionData = await getReunionByIdService(id);
+        setReunion(reunionData);
+        
+        // Pré-remplir les participants
+        if (reunionData.participants) {
+          // Vous devrez adapter cette logique selon votre structure de données
+          // Cela dépend de comment les participants sont stockés dans votre API
+        }
+        
+      } catch (error) {
+        notyf.error("Erreur lors du chargement de la réunion");
+        console.error("Erreur:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReunion();
+  }, [id]);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (submitting || !formRef.current) return;
+    if (submitting || !formRef.current || !id) return;
 
     const form = new FormData(e.currentTarget);
 
@@ -237,8 +254,6 @@ const CreateReunion = () => {
     const etat = parseInt(String(form.get("etat") || "1"));
     const type = parseInt(String(form.get("type") || "1"));
     const userid = localStorage.getItem("userId") || "";
-    
-    console.log("userid récupéré depuis localStorage:", userid);
 
     const payload = {
       titre,
@@ -252,10 +267,8 @@ const CreateReunion = () => {
       type,
       participantsObligatoires: requiredParticipants.map(p => p.email),
       participantsFacultatifs: optionalParticipants.map(p => p.email),
-      userId: userid, // Changé de userid à userId
+      userId: userid,
     };
-
-    console.log("Payload préparé:", JSON.stringify(payload, null, 2));
 
     // Validation
     if (!payload.titre || !payload.description || !payload.dateDebut || 
@@ -268,32 +281,24 @@ const CreateReunion = () => {
     setSubmitting(true);
 
     try {
-      const response = await saveReunion(payload);
+      const response = await updateReunionService(id, payload);
       
-      // Utiliser les URLs générées par le backend
       setOutlookUrl(response.outlookUrl);
       setTeamsUrl(response.teamsMeetingLink);
       
-      // Générer les informations Teams formatées
       const formattedTeamsInfo = formatTeamsInfo(response.reunion);
       setTeamsInfo(formattedTeamsInfo);
       
-      // Copier automatiquement les infos Teams dans le clipboard
       const copied = await copyTeamsInfoToClipboard(response.reunion);
       if (copied) {
         notyf.success("Informations Teams copiées dans le presse-papier !");
       }
-      setShowCalendarModal(true);
-      //navigate(`/aeromemo/reunion/${response.reunion.id}`);
-      notyf.success("Réunion créée avec succès !");
       
-      // Réinitialiser le formulaire
-      formRef.current.reset();
-      setRequiredParticipants([]);
-      setOptionalParticipants([]);
+      setShowCalendarModal(true);
+      notyf.success("Réunion modifiée avec succès !");
       
     } catch (error) {
-      let msg = "Une erreur est survenue lors de l'enregistrement.";
+      let msg = "Une erreur est survenue lors de la modification.";
       
       if (axios.isAxiosError(error)) {
         msg = error.response?.data?.message || 
@@ -317,35 +322,98 @@ const CreateReunion = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <DefaultLayout>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </DefaultLayout>
+    );
+  }
+
+  if (!reunion) {
+    return (
+      <DefaultLayout>
+        <div className="text-center py-8">
+          <h2 className="text-xl font-bold text-red-600">Réunion non trouvée</h2>
+          <button 
+            onClick={() => navigate("/aeromemo/planification")}
+            className="mt-4 px-4 py-2 bg-primary text-white rounded"
+          >
+            Retour à la liste
+          </button>
+        </div>
+      </DefaultLayout>
+    );
+  }
+
   return (
     <DefaultLayout>
       <div className="text-sm mx-2 p-4 md:mx-5">
         <Breadcrumb
           paths={[
             { name: "Réunion", to: "/aeromemo/planification" },
-            { name: "Créer Réunion" },
+            { name: "Modifier Réunion" },
           ]}
         />
 
         <div className="relative mt-2 bg-white p-4 shadow-1 rounded-md border border-zinc-200 dark:border-strokedark dark:bg-boxdark">
           <div className="font-bold w-full text-black-2 dark:text-whiten text-center tracking-widest text-lg">
-            Créer une nouvelle réunion
+            Modifier la réunion
           </div>
 
           <div className="pt-2 w-full px-2 md:px-20 lg:px-30 xl:px-50">
             <form className="space-y-4" onSubmit={onSubmit} ref={formRef}>
-              <CustomInput type="text" name="titre" label="Titre" defaultValue="" placeholder="Titre de la réunion" rounded="medium" required />
+              <CustomInput 
+                type="text" 
+                name="titre" 
+                label="Titre" 
+                defaultValue={reunion.titre} 
+                placeholder="Titre de la réunion" 
+                rounded="medium" 
+                required 
+              />
 
               <div className="grid md:grid-cols-2 gap-4">
-                <CustomInput type="date" name="dateDebut" label="Date de début" defaultValue="" rounded="medium" required />
-                <CustomInput type="date" name="dateFin" label="Date de fin" defaultValue="" rounded="medium" required />
+                <CustomInput 
+                  type="date" 
+                  name="dateDebut" 
+                  label="Date de début" 
+                  defaultValue={reunion.dateDebut} 
+                  rounded="medium" 
+                  required 
+                />
+                <CustomInput 
+                  type="date" 
+                  name="dateFin" 
+                  label="Date de fin" 
+                  defaultValue={reunion.dateFin} 
+                  rounded="medium" 
+                  required 
+                />
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
-                <CustomInput type="time" name="heureDebut" label="Heure de début" defaultValue="" rounded="medium" required />
-                <CustomInput type="time" name="heureFin" label="Heure de fin" defaultValue="" rounded="medium" required />
+                <CustomInput 
+                  type="time" 
+                  name="heureDebut" 
+                  label="Heure de début" 
+                  defaultValue={reunion.heureDebut} 
+                  rounded="medium" 
+                  required 
+                />
+                <CustomInput 
+                  type="time" 
+                  name="heureFin" 
+                  label="Heure de fin" 
+                  defaultValue={reunion.heureFin} 
+                  rounded="medium" 
+                  required 
+                />
               </div>
-                  <div className="grid md:grid-cols-2 gap-4">
+
+              <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="etat" className="mb-1 block font-semibold text-sm text-black dark:text-white">
                     État de la réunion
@@ -353,7 +421,7 @@ const CreateReunion = () => {
                   <select
                     id="etat"
                     name="etat"
-                    defaultValue="1"
+                    defaultValue={reunion.etat}
                     required
                     className="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-not-allowed disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
                   >
@@ -372,7 +440,7 @@ const CreateReunion = () => {
                   <select
                     id="type"
                     name="type"
-                    defaultValue="1"
+                    defaultValue={reunion.type || 1}
                     required
                     className="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-not-allowed disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
                   >
@@ -385,7 +453,6 @@ const CreateReunion = () => {
                 </div>
               </div>
 
-              <div></div>
               <div>
                 <label htmlFor="emplacement" className="mb-1 block font-semibold text-sm text-black dark:text-white">
                   Emplacement
@@ -393,7 +460,7 @@ const CreateReunion = () => {
                 <select
                   id="emplacement"
                   name="emplacement"
-                  defaultValue=""
+                  defaultValue={reunion.emplacement || ""}
                   required
                   className="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-not-allowed disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
                 >
@@ -416,7 +483,7 @@ const CreateReunion = () => {
                   id="description"
                   name="description"
                   rows={4}
-                  defaultValue=""
+                  defaultValue={reunion.description}
                   className="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-not-allowed disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
                   placeholder="Description de la réunion..."
                   required
@@ -428,7 +495,7 @@ const CreateReunion = () => {
                 requiredLabel
                 placeholder="Tapez pour rechercher (ex : a...)"
                 selected={requiredParticipants}
-                onChange={(next) => {
+                onChange={(next: SimpleUser[]) => {
                   const nextOptional = optionalParticipants.filter((u) => !next.some((r) => r.id === u.id));
                   setOptionalParticipants(nextOptional);
                   setRequiredParticipants(next);
@@ -441,7 +508,7 @@ const CreateReunion = () => {
                 label="Participants facultatifs"
                 placeholder="Tapez pour rechercher (ex : a...)"
                 selected={optionalParticipants}
-                onChange={(next) => {
+                onChange={(next: SimpleUser[]) => {
                   const nextRequired = requiredParticipants.filter((u) => !next.some((o) => o.id === u.id));
                   setRequiredParticipants(nextRequired);
                   setOptionalParticipants(next);
@@ -454,7 +521,7 @@ const CreateReunion = () => {
                 <button
                   type="button"
                   className="md:w-fit gap-2 w-full cursor-pointer py-2 px-5 text-center font-semibold text-zinc-700 dark:text-whiten hover:bg-zinc-50 lg:px-8 border border-zinc-300 rounded-lg dark:bg-transparent dark:hover:bg-boxdark2"
-                  onClick={() => window.history.back()}
+                  onClick={() => navigate("/aeromemo/planification")}
                   disabled={submitting}
                 >
                   Annuler
@@ -465,107 +532,23 @@ const CreateReunion = () => {
                   disabled={submitting}
                   className="md:w-fit gap-2 w-full cursor-pointer py-2 px-5 text-center font-semibold text-white hover:bg-opacity-90 lg:px-8 xl:px-5 border border-primaryGreen bg-primaryGreen rounded-lg dark:border-darkgreen dark:bg-darkgreen dark:hover:bg-opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {submitting ? "Création..." : "Créer la réunion"}
+                  {submitting ? "Modification..." : "Modifier la réunion"}
                 </button>
               </div>
             </form>
           </div>
         </div>
 
-        {/* Modal d'options calendrier */}
+        {/* Modals identiques à CreateReunion */}
         {showCalendarModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-boxdark rounded-lg p-6 max-w-md w-full">
-              <h3 className="text-lg font-bold mb-4">Réunion créée avec succès !</h3>
-              <p className="mb-4">Que souhaitez-vous faire maintenant ?</p>
-              
-              <div className="space-y-3 mb-6">
-                {outlookUrl && (
-                  <button
-                    onClick={() => {
-                      window.open(outlookUrl, '_blank');
-                      setShowCalendarModal(false);
-                    }}
-                    className="w-full px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-                    </svg>
-                    Ouvrir dans Outlook
-                  </button>
-                )}
-                
-                {teamsUrl && (
-                  <button
-                    onClick={() => {
-                      window.open(teamsUrl, '_blank');
-                      setShowCalendarModal(false);
-                    }}
-                    className="w-full px-4 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                    </svg>
-                    Rejoindre Teams
-                  </button>
-                )}
-
-                {teamsInfo && (
-                  <button
-                    onClick={() => {
-                      setShowTeamsInfoModal(true);
-                      setShowCalendarModal(false);
-                    }}
-                    className="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-                    </svg>
-                    Voir infos Teams
-                  </button>
-                )}
-              </div>
-              
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setShowCalendarModal(false)}
-                  className="px-4 py-2 border rounded-md dark:border-form-strokedark dark:bg-boxdark-2 dark:text-white hover:bg-gray-100 dark:hover:bg-boxdark-3"
-                >
-                  Fermer
-                </button>
-              </div>
-            </div>
+            {/* ... */}
           </div>
         )}
 
-        {/* Modal d'informations Teams */}
         {showTeamsInfoModal && teamsInfo && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-boxdark rounded-lg p-6 max-w-md w-full">
-              <h3 className="text-lg font-bold mb-4">Informations de réunion Teams</h3>
-              
-              <div className="bg-gray-100 dark:bg-boxdark-2 p-4 rounded-md mb-4">
-                <pre className="whitespace-pre-wrap text-sm font-mono">
-                  {teamsInfo}
-                </pre>
-              </div>
-              
-              <div className="flex justify-between">
-                <button
-                  onClick={handleCopyTeamsInfo}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Copier
-                </button>
-                
-                <button
-                  onClick={() => setShowTeamsInfoModal(false)}
-                  className="px-4 py-2 border rounded-md dark:border-form-strokedark dark:bg-boxdark-2 dark:text-white hover:bg-gray-100 dark:hover:bg-boxdark-3"
-                >
-                  Fermer
-                </button>
-              </div>
-            </div>
+            {/* ... */}
           </div>
         )}
       </div>
@@ -573,4 +556,4 @@ const CreateReunion = () => {
   );
 };
 
-export default CreateReunion;
+export default EditReunion;

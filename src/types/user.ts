@@ -13,6 +13,7 @@ export interface UserInterface {
   superiorName: String | null;
   status: string;
   habilitations: Array<{ id: string; label: string }>;
+  graphToken?: string;
 }
 
 export interface AuthContextProps {
