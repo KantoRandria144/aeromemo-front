@@ -12,6 +12,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { LayoutGrid, CalendarDays } from "lucide-react";
+import frLocale from "@fullcalendar/core/locales/fr";
 import { outlookService, OutlookEvent } from "../../../services/Reunion/outlookService";
 
 const Planification = () => {
@@ -148,7 +149,7 @@ const Planification = () => {
     // Composant pour afficher un participant avec la couleur appropriée
     const ParticipantAvatar = ({ nom, type, showTooltip = true }: { 
     nom: string; 
-    type: 'obligatoire' | 'facultatif';
+    type: 'obligatoire' | 'facultatif'| 'organizer';
     showTooltip?: boolean;
 }) => {
     const initials = getThreeInitials(nom);
@@ -160,14 +161,14 @@ const Planification = () => {
     
     return (
         <div className="relative group -ml-2 first:ml-0 hover:z-99 cursor-pointer">
-            <p className={`text-slate-50 border relative ${bgColor} p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full dark:text-white dark:border-transparent`}>
+            <p className={`text-xs border relative ${bgColor} p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full dark:text-white dark:border-transparent`}>
                 {initials}
             </p>
             {showTooltip && (
                 <div className="absolute whitespace-nowrap text-xs hidden group-hover:block bg-white text-black p-2 border border-whiten shadow-5 rounded-md z-999 top-[-35px] left-1/2 transform -translate-x-1/2">
                     <p>{nom} </p>
                     <span className={`text-xs px-2 rounded-full ${bgColor}`}>
-                        {type === 'obligatoire' ? 'Obligatoire' : 'Facultatif'}
+                        {type === 'organizer' ? 'Organisateur' : type === 'obligatoire' ? 'Obligatoire' : 'Facultatif'}
                     </span>
                 </div>
             )}
@@ -181,8 +182,10 @@ const Planification = () => {
             <FullCalendar
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                 initialView="dayGridMonth"
+                 locales={[frLocale]}       // 👈 on ajoute la locale
+                 locale="fr" 
                 headerToolbar={{
-                    left: "prev,next today",
+                    left: "prev,next",
                     center: "title",
                     right: "dayGridMonth,timeGridWeek,timeGridDay",
                 }}
@@ -215,17 +218,22 @@ const Planification = () => {
     );
 
     // Fonction pour formater la date des événements Outlook
-    const formatDateTime = (dateTime: string, timeZone: string) => {
-        return new Date(dateTime).toLocaleString('fr-FR', {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            timeZone: timeZone
-        });
-    };
+    // Fonction pour formater la date des événements Outlook
+const formatDateTime = (dateTime: string, timeZone: string) => {
+  const date = new Date(dateTime);
+
+  // On extrait jour/mois/année (sur 2 chiffres)
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = String(date.getFullYear()).slice(-2);
+
+  // Heure et minute
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return `${day}/${month}/${year} à ${hours}:${minutes} `;
+};
+
 
     return (
         <DefaultLayout>
@@ -417,7 +425,7 @@ const Planification = () => {
                                     <table className="w-full text-sm hidden md:table table-auto">
                                         <thead className="pt-5 rounded-t-xl bg-primaryGreen dark:bg-darkgreen">
                                             <tr className="border border-stone-300 border-opacity-[0.1] border-r-0 border-l-0 text-white text-left">
-                                                {activeTab !== "outlook" && (
+                                                {/* {activeTab !== "outlook" && (
                                                     <th className="pl-2">
                                                         <button
                                                             onClick={handleSelectAllReunions}
@@ -445,7 +453,7 @@ const Planification = () => {
                                                             </svg>
                                                         </button>
                                                     </th>
-                                                )}
+                                                )} */}
                                                 {activeTab === "all" ? (
                                                     <>
                                                         <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
@@ -468,6 +476,11 @@ const Planification = () => {
                                                                 <span>Statuts</span>
                                                             </div>
                                                         </th>
+                                                        <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Actions</span>
+                                                    </div>
+                                                </th>
                                                     </>
                                                 ) : activeTab === "mine" ? (
                                                     <>
@@ -491,6 +504,11 @@ const Planification = () => {
                                                                 <span>Statut</span>
                                                             </div>
                                                         </th>
+                                                        <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Actions</span>
+                                                    </div>
+                                                </th>
                                                     </>
                                                 ) : (
                                                     <>
@@ -516,11 +534,7 @@ const Planification = () => {
                                                         </th>
                                                     </>
                                                 )}
-                                                <th className="py-4 px-4 font-bold text-white dark:text-white xl:pl-11">
-                                                    <div className="flex items-center gap-1">
-                                                        <span>Actions</span>
-                                                    </div>
-                                                </th>
+                                               
                                             </tr>
                                         </thead>
                                        <tbody>
@@ -528,7 +542,7 @@ const Planification = () => {
                                             filteredReunions && filteredReunions.length > 0 ? (
                                             filteredReunions.map((reunion) => (
                                                 <tr key={reunion.id} className="border-b hover:bg-gray-50 dark:hover:bg-boxdark2">
-                                                <td className="pl-2 border-b border-[#eee] dark:border-strokedark">
+                                                {/* <td className="pl-2 border-b border-[#eee] dark:border-strokedark">
                                                     <button
                                                     className="cursor-pointer border w-5 h-5"
                                                     onClick={() => handleSelectReunion(reunion.id)}
@@ -552,7 +566,7 @@ const Planification = () => {
                                                         />
                                                     </svg>
                                                     </button>
-                                                </td>
+                                                </td> */}
                                                 <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
                                                     {new Date(reunion.dateDebut).toLocaleDateString()}
                                                 </td>
@@ -738,34 +752,45 @@ const Planification = () => {
                                                         </td>
                                                         <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
                                                             <p className="text-black text-justify dark:text-white font-bold">{event.subject || 'Sans titre'}</p>
-                                                            {event.bodyPreview && (
+                                                            {/* {event.bodyPreview && (
                                                                 <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                                                                     {event.bodyPreview.substring(0, 100)}...
                                                                 </p>
-                                                            )}
+                                                            )} */}
                                                         </td>
                                                         <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
-                                                            {event.organizer?.emailAddress.name || 'Non spécifié'}
+                                                        {event.organizer && (
+                                                            <div className="flex items-center gap-2">
+                                                            <ParticipantAvatar nom={event.organizer.emailAddress.name} type="organizer"  />
+                                                            
+                                                            </div>
+                                                        )}
                                                         </td>
+
                                                         <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
                                                             {event.attendees && event.attendees.length > 0 ? (
                                                                 <div className="flex flex-col">
-                                                                    <span>{event.attendees.length} participant(s)</span>
+                                                                    {/* <span>{event.attendees.length} participant(s)</span> */}
                                                                     <div className="flex -ml-2 mt-1">
-                                                                        {event.attendees.slice(0, 3).map((attendee, index) => (
+                                                                        {event.attendees
+                                                                            .filter(a => a.emailAddress.address !== event.organizer?.emailAddress.address) 
+                                                                            .slice(0, 3)
+                                                                            .map((attendee, index) => (
                                                                             <div key={index} className="relative group -ml-2 first:ml-0">
-                                                                                <p className="text-slate-50 border relative bg-cyan-100 text-cyan-600 border-cyan-300 p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full dark:bg-cyan-900 dark:text-cyan-300 dark:border-cyan-700">
+                                                                                <p className="text-xs border relative bg-cyan-100 text-cyan-600 border-cyan-300 p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full dark:bg-cyan-900 dark:text-cyan-300 dark:border-cyan-700">
                                                                                     {getThreeInitials(attendee.emailAddress.name)}
                                                                                 </p>
                                                                                 <div className="absolute whitespace-nowrap text-xs hidden group-hover:block bg-white text-black p-2 border border-whiten shadow-5 rounded-md z-999 top-[-35px] left-1/2 transform -translate-x-1/2">
                                                                                     <p>{attendee.emailAddress.name}</p>
-                                                                                    <p className="text-xs">{attendee.emailAddress.address}</p>
+                                                                                    {/* <p className="text-xs">{attendee.status?.time}</p> */}
                                                                                 </div>
                                                                             </div>
                                                                         ))}
-                                                                        {event.attendees.length > 3 && (
+                                                                        {event.attendees.filter(a => 
+                                                                                a.emailAddress.address !== event.organizer?.emailAddress.address
+                                                                            ).length > 3 && (
                                                                             <div className="relative group -ml-2 first:ml-0">
-                                                                                <p className="text-slate-50 border relative bg-gray-400 p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full dark:text-white dark:border-transparent">
+                                                                                <p className="text-xs border relative bg-cyan-100 text-cyan-600 border-cyan-300 p-1 w-7 h-7 flex justify-center items-center text-xs rounded-full dark:bg-cyan-900 dark:text-cyan-300 dark:border-cyan-700">
                                                                                     +{event.attendees.length - 3}
                                                                                 </p>
                                                                             </div>
