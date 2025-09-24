@@ -15,6 +15,7 @@ import { decodeToken } from "./services/Function/TokenService";
 import OutlookEvents from "./Pages/Reunion/Planification/OutlookEvents";
 import OutlookEventsList from "./Pages/Reunion/Planification/OutlookEventsList";
 import EditReunion from "./Pages/Reunion/EditReunion";
+import PresencePage from "./Pages/Reunion/PresencePage";
 
 
 const App = () => {
@@ -128,6 +129,15 @@ const App = () => {
             </>
           }
         /> 
+        <Route 
+          path="/aeromemo/reunion/presence/:qrCodeId"
+          element={
+            <>
+              <PageTitle  title="Présence"/>
+              <PresencePage/>
+            </>
+          }
+        />
 
        
       </Routes>

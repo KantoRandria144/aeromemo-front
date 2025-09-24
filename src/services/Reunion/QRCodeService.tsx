@@ -45,28 +45,34 @@ export const generateQRCode = async (
   }
 };
 
-// ✅ Scanner un QR Code (renvoie les infos de la réunion et du participant)
-export const scanQRCode = async (
-  qrCodeId: string,
-  email: string
-): Promise<QRCodeWithReunion> => {
+// ✅ Scanner un QR Code (renvoie la liste des participants)
+export const scanQRCodeForParticipants = async (
+  qrCodeId: string
+): Promise<{
+  success: boolean;
+  qrCodeId: string;
+  reunionId: string;
+  reunionTitre: string;
+  participants: {
+    id: string;
+    name: string;
+    email: string;
+    type: string;
+    state: string;
+  }[];
+  message: string;
+}> => {
   try {
     const token = localStorage.getItem("_au_pr");
-    const url = `${endPoint}/api/QRCode/scan/${qrCodeId}?email=${encodeURIComponent(
-      email
-    )}`;
+    const url = `${endPoint}/api/QRCode/scan/${qrCodeId}`;
 
     console.log("Scan URL:", url);
 
-    const response = await axios.post(
-      url,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await axios.post(url, {}, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
     return response.data;
   } catch (error) {
@@ -75,6 +81,36 @@ export const scanQRCode = async (
   }
 };
 
+// ✅ Mettre à jour la présence d'un participant
+export const updateParticipantPresence = async (
+  qrCodeId: string,
+  participantId: string,
+  state: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const token = localStorage.getItem("_au_pr");
+    const url = `${endPoint}/api/QRCode/update-presence/${qrCodeId}`;
+
+    const response = await axios.post(
+      url,
+      {
+        participantId,
+        state
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour de la présence:", error);
+    throw error;
+  }
+};
 // ✅ Obtenir les infos d’un QR Code
 export const getQRCodeInfo = async (
   qrCodeId: string

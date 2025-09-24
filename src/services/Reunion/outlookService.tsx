@@ -20,6 +20,7 @@ export interface OutlookEvent {
         emailAddress: {
             name: string;
             address: string;
+            
         };
         type: string;
         status?: {
