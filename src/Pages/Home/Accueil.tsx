@@ -9,6 +9,7 @@ import CustomInput from "../../components/UIElements/Input/CustomInput";
 import { decodeToken } from "../../services/Function/TokenService";
 import { getMySubordinatesNameAndId } from "../../services/User/UserServices";
 import CustomInputUserSpecifiedSearch from "../../components/UIElements/Input/CustomInputUserSpecifiedSearch";
+import { getMonthlyReunionTime, MonthlyReunionTime } from "../../services/Reunion/ReunionServices";
 
 type TSubordinate = {
   id: string;
@@ -34,6 +35,8 @@ const Accueil = () => {
   const [subordinates, setSubordinates] = useState<TSubordinate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [monthlyReunionData, setMonthlyReunionData] = useState<MonthlyReunionTime[]>([]);
+  const [isChartLoading, setIsChartLoading] = useState(false);
 
   useEffect(() => {
     const initializeComponent = async () => {
@@ -59,6 +62,7 @@ const Accueil = () => {
 
         const allUserIds = allUsers.map((user) => user.id);
         setSearch((prev) => ({ ...prev, ids: allUserIds }));
+        await fetchMonthlyReunionData(allUserIds);
       } catch (error) {
         console.error("Initialization error:", error);
       } finally {
@@ -68,6 +72,18 @@ const Accueil = () => {
     };
     if (!isInitialized) initializeComponent();
   }, [isInitialized]);
+
+  const fetchMonthlyReunionData = async (userIds: string[]) => {
+    setIsChartLoading(true);
+    try {
+      const data = await getMonthlyReunionTime(userIds);
+      setMonthlyReunionData(data);
+    } catch (error) {
+      console.error("Erreur lors du chargement des données de réunion:", error);
+    } finally {
+      setIsChartLoading(false);
+    }
+  };
 
   const handleRemoveUserSelectedInput = useCallback(
     (userId: string) => {
@@ -99,6 +115,31 @@ const Accueil = () => {
         ? selectedUserInput.map((user) => user.id)
         : subordinates.map((user) => user.id);
   }, [selectedUserInput, subordinates]);
+
+  const formatChartData = () => {
+    if (monthlyReunionData.length === 0) {
+      return {
+        labels: ["Aucune donnée"],
+        data: [0],
+        maxY: 1
+      };
+    }
+
+    const labels = monthlyReunionData.map(item => {
+      const [year, month] = item.month.split('-');
+      const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+      return `${monthNames[parseInt(month) - 1]} ${year}`;
+    });
+    
+    const data = monthlyReunionData.map(item => item.totalHours);
+    
+    // Trouver la valeur maximale pour l'axe Y (arrondie à l'entier supérieur)
+    const maxY = Math.ceil(Math.max(...data, 0));
+
+    return { labels, data, maxY };
+  };
+
+  const chartConfig = formatChartData();
 
   const availableSubordinates = subordinates.filter(
     (sub) => !selectedUserInput.some((selected) => selected.id === sub.id)
@@ -189,7 +230,11 @@ const Accueil = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Temps passé en réunion</h3>
-            <BarChart labels={["04 Juin", "17 Juin", "22 Juin", "24 Juin"]} data={[2.5, 4, 2.5, 2.5]} maxY={5} />
+            <BarChart 
+              labels={chartConfig.labels} 
+              data={chartConfig.data} 
+              maxY={chartConfig.maxY} 
+            />
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">

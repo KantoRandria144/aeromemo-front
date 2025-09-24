@@ -130,7 +130,7 @@ const App = () => {
           }
         /> 
         <Route 
-          path="/aeromemo/reunion/presence/:qrCodeId"
+          path="/presence/:qrCodeId"
           element={
             <>
               <PageTitle  title="Présence"/>

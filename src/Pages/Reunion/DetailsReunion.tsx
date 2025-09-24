@@ -4,7 +4,7 @@ import DefaultLayout from "../../components/layout/DefaultLayout";
 import { getReunionById } from "../../services/Reunion/ReunionServices";
 import { Reunion, ParticipantDTO } from "../../types/reunion";
 import { formatDate, formatTime } from "../../services/Function/DateServices";
-import { generateQRCode, getQRCodeInfo, scanQRCode } from "../../services/Reunion/QRCodeService";
+import { generateQRCode, getQRCodeInfo } from "../../services/Reunion/QRCodeService";
 import { Mic, MicOff, QrCode, Square, Download, RefreshCw } from "lucide-react";
 
 const endPoint = import.meta.env.VITE_API_ENDPOINT;
@@ -36,6 +36,7 @@ const DetailsReunion = () => {
   const [showQRModal, setShowQRModal] = useState(false);
   const [qrCodeGenerated, setQrCodeGenerated] = useState(false);
   const [reunionModified, setReunionModified] = useState(false);
+  const [qrCodeLoaded, setQrCodeLoaded] = useState(false);
 
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
@@ -52,17 +53,19 @@ const DetailsReunion = () => {
           setReunion(reunionData);
           setOriginalReunion({ ...reunionData });
 
+          // Charger le QR Code depuis le localStorage APRÈS avoir chargé la réunion
           const savedQrCodeData = localStorage.getItem(`qrCodeData_${id}`);
           if (savedQrCodeData) {
             const { qrCodeUrl, reunionHash } = JSON.parse(savedQrCodeData);
             setQrCodeUrl(qrCodeUrl);
             setQrCodeGenerated(true);
 
+            // Vérifier si la réunion a été modifiée
             const currentHash = generateReunionHash(reunionData);
-            if (reunionHash !== currentHash) {
-              setReunionModified(true);
-            }
+            setReunionModified(reunionHash !== currentHash);
           }
+          
+          setQrCodeLoaded(true);
         }
       } catch (error) {
         console.error("Erreur lors du chargement de la réunion:", error);
@@ -248,22 +251,31 @@ const DetailsReunion = () => {
               )}
               {reunion.teamsMeetingId && <p className="mb-2">ID de la réunion: {reunion.teamsMeetingId}</p>}
               {reunion.teamsSecretCode && <p>Code secret: {reunion.teamsSecretCode}</p>}
-               {reunion.teamsMeetingLink && (
-              <button
-                onClick={() => window.open(reunion.teamsMeetingLink, "_blank")}
-                className="px-5 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center gap-2"
-              >
-                Rejoindre Teams
-              </button>
-            )}
+              {reunion.teamsMeetingLink && (
+                <button
+                  onClick={() => window.open(reunion.teamsMeetingLink, "_blank")}
+                  className="px-5 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center gap-2"
+                >
+                  Rejoindre Teams
+                </button>
+              )}
             </div>
 
             {/* QR Code */}
             <div className="bg-gray-50 rounded-lg p-6 w-full md:w-1/3 flex flex-col items-center justify-start shadow-sm">
               <h3 className="text-center font-bold text-zinc-600 text-xl mb-6">QR Code</h3>
-              {qrCodeGenerated && qrCodeUrl ? (
+              
+              {loading ? (
+                <div className="flex justify-center items-center h-56">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                </div>
+              ) : qrCodeGenerated && qrCodeUrl ? (
                 <div className="flex flex-col items-center">
-                  <img src={qrCodeUrl} alt="QR Code" className="w-56 h-56 mb-6 border border-gray-300 rounded-lg shadow" />
+                  <img 
+                    src={qrCodeUrl} 
+                    alt="QR Code" 
+                    className="w-56 h-56 mb-6 border border-gray-300 rounded-lg shadow" 
+                  />
                   <div className="flex flex-col gap-3 w-full">
                     <button
                       onClick={handleDownloadQRCode}
@@ -305,18 +317,7 @@ const DetailsReunion = () => {
               )}
             </div>
           </div>
-          <div className="flex flex-col md:flex-row gap-3 mt-6 justify-center">
-            {/* {reunion.outlookUrl && (
-              <button
-                onClick={() => window.open(reunion.outlookUrl, "_blank")}
-                className="px-5 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center gap-2"
-              >
-                Ouvrir dans Outlook
-              </button>
-            )} */}
 
-           
-          </div>
           {/* Liste des participants */}
           <div className="mt-6">
             <h3 className="font-semibold mb-3">Liste des participants</h3>

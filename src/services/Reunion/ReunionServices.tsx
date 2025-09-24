@@ -27,6 +27,11 @@ export type SaveReunionResponse = {
     teamsSecretCode: string;
 };
 
+export interface MonthlyReunionTime {
+  month: string; // Format "YYYY-MM"
+  totalHours: number;
+}
+
 export const saveReunion = async (payload: SaveReunionPayload): Promise<SaveReunionResponse> => {
     
     try {
@@ -436,3 +441,65 @@ export const autoConfirmCreatorPresence = async (reunionId: string): Promise<boo
 };
 
 
+// Fonction pour calculer le temps total de réunion par mois
+export const getMonthlyReunionTime = async (userIds: string[]): Promise<MonthlyReunionTime[]> => {
+  try {
+    const token = localStorage.getItem("_au_pr");
+    if (!token) throw new Error("Utilisateur non connecté");
+
+    // Récupérer les réunions pour les utilisateurs spécifiés
+    const allReunions: Reunion[] = [];
+    
+    for (const userId of userIds) {
+      try {
+        const response = await axios.get(`${endPoint}/api/reunion/my-reunions/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json"
+          }
+        });
+        allReunions.push(...response.data);
+      } catch (error) {
+        console.error(`Erreur pour l'utilisateur ${userId}:`, error);
+      }
+    }
+
+    // Calculer le temps total par mois
+    const monthlyData: { [key: string]: number } = {};
+
+    allReunions.forEach(reunion => {
+      try {
+        // Convertir les dates et heures en objets Date
+        const startDateTime = new Date(`${reunion.dateDebut}T${reunion.heureDebut}`);
+        const endDateTime = new Date(`${reunion.dateFin}T${reunion.heureFin}`);
+        
+        // Calculer la durée en heures
+        const durationMs = endDateTime.getTime() - startDateTime.getTime();
+        const durationHours = durationMs / (1000 * 60 * 60);
+        
+        // Extraire le mois (format YYYY-MM)
+        const month = reunion.dateDebut.substring(0, 7);
+        
+        // Ajouter la durée au mois correspondant
+        if (monthlyData[month]) {
+          monthlyData[month] += durationHours;
+        } else {
+          monthlyData[month] = durationHours;
+        }
+      } catch (error) {
+        console.error("Erreur de traitement pour la réunion:", reunion, error);
+      }
+    });
+
+    // Convertir en tableau et trier par mois
+    return Object.keys(monthlyData)
+      .sort()
+      .map(month => ({
+        month,
+        totalHours: parseFloat(monthlyData[month].toFixed(2)) // Arrondir à 2 décimales
+      }));
+  } catch (error) {
+    console.error("Erreur lors du calcul du temps de réunion:", error);
+    throw error;
+  }
+};
