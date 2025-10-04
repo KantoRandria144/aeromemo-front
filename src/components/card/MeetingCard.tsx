@@ -4,11 +4,22 @@ import { useEffect, useState } from "react";
 import { getMyReunions } from "../../services/Reunion/ReunionServices";
 import { format, isToday, parseISO } from 'date-fns';
 
-const MeetingCard: React.FC = () => {
+interface MeetingCardProps {
+  filters?: {
+    typeReunion?: number;
+    collaborateur?: string;
+    dateDebutMin?: string;
+    dateDebutMax?: string;
+  };
+}
+
+
+
+const MeetingCard: React.FC<MeetingCardProps> = ({ filters }) => {
   const [reunions, setReunions] = useState<Reunion[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string>('');
+  const [userId, setUserId] = useState<string>("000465d0-0530-41d9-872f-d6012418ba7e");
 
   useEffect(() => {
     const userData = localStorage.getItem("userId");
@@ -42,22 +53,18 @@ const MeetingCard: React.FC = () => {
         setLoading(false);
         return;
       }
-      
+
       try {
         setLoading(true);
-        const toutesReunions = await getMyReunions(userId);
-
-        const reunionsAujourdhui = toutesReunions.filter((reunion) => {
-          try {
-            const dateReunion = parseISO(reunion.dateDebut);
-            return isToday(dateReunion);
-          } catch (error) {
-            console.error("Erreur lors de l'analyse de la date:", error);
-            return false;
-          }
+        const today = new Date().toISOString().split("T")[0];
+          const toutesReunions = await getMyReunions(userId, {
+          typeReunion: filters?.typeReunion,
+          collaborateur: filters?.collaborateur,
+          dateDebutMin: filters?.dateDebutMin ?? today,
+          dateDebutMax: filters?.dateDebutMax ?? today,
         });
-        
-        setReunions(reunionsAujourdhui);
+
+        setReunions(toutesReunions);
       } catch (err) {
         console.error("Erreur lors de la récupération des réunions:", err);
         setError("Erreur lors du chargement des réunions.");
@@ -65,10 +72,9 @@ const MeetingCard: React.FC = () => {
         setLoading(false);
       }
     };
-    
-    fetchReunions();
-  }, [userId]);
 
+    fetchReunions();
+  }, [userId, filters]);
   const formatHeure = (heure: string) => {
     try {
       const [heures, minutes] = heure.split(':');

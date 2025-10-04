@@ -254,24 +254,41 @@ export const listAllReunion = async (): Promise<Reunion[]> => {
 };
 
 // Récupérer les réunions de l’utilisateur connecté
-export const getMyReunions = async (userId: string): Promise<Reunion[]> => {
-    try {
-      const token = localStorage.getItem("_au_pr");
-      if (!token) throw new Error("Utilisateur non connecté");
+export const getMyReunions = async (
+  userId: string,
+  filters?: {
+    typeReunion?: number;
+    collaborateur?: string;
+    dateDebutMin?: string;
+    dateDebutMax?: string;
+  }
+): Promise<Reunion[]> => {
+  try {
+    const token = localStorage.getItem("_au_pr");
+    if (!token) throw new Error("Utilisateur non connecté");
 
-      const response = await axios.get(`${endPoint}/api/reunion/my-reunions/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json"
-        }
-      });
-  
-      return response.data as Reunion[];
-    } catch (error) {
-      console.error("Erreur lors de la récupération des réunions :", error);
-      throw error;
-    }
-  };
+    // Construction des query params
+    const params = new URLSearchParams();
+    if (filters?.typeReunion) params.append("typeReunion", filters.typeReunion.toString());
+    if (filters?.collaborateur) params.append("collaborateur", filters.collaborateur);
+    if (filters?.dateDebutMin) params.append("dateDebutMin", filters.dateDebutMin);
+    if (filters?.dateDebutMax) params.append("dateDebutMax", filters.dateDebutMax);
+
+    const url = `${endPoint}/api/Reunion/my-reunions/${userId}?${params.toString()}`;
+
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+
+    return response.data as Reunion[];
+  } catch (error) {
+    console.error("Erreur lors de la récupération des réunions :", error);
+    throw error;
+  }
+};
   
 //  créer une réunion
 export const createReunion = async (reunionData: CreateReunion): Promise<Reunion> => {

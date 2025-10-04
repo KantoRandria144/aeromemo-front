@@ -23,14 +23,22 @@ type Reunion = {
   dateDebut: string;
   dateFin: string;
 };
+const TYPE_REUNION_OPTIONS = [
+  { value: 1, label: "Transverse" },
+  { value: 2, label: "Projet" },
+];
+
 
 const Accueil = () => {
   const [chartData, setChartData] = useState<{ name: string; data: number[] }[]>([]);
   const [search, setSearch] = useState({
     ids: [] as string[],
+    typeReunion: undefined as number | undefined,
+    collaborateur: undefined as string | undefined,
     dateDebut: undefined as string | undefined,
     dateFin: undefined as string | undefined,
   });
+
   const [selectedUserInput, setSelectedUserInput] = useState<TSubordinate[]>([]);
   const [subordinates, setSubordinates] = useState<TSubordinate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -109,12 +117,28 @@ const Accueil = () => {
     });
   }, [subordinates]);
 
-  const handleSearch = useCallback(() => {
-    const userIds =
-      selectedUserInput.length > 0
-        ? selectedUserInput.map((user) => user.id)
-        : subordinates.map((user) => user.id);
-  }, [selectedUserInput, subordinates]);
+const handleSearch = useCallback(async () => {
+  const userIds =
+    selectedUserInput.length > 0
+      ? selectedUserInput.map((user) => user.id)
+      : subordinates.map((user) => user.id);
+
+  if (userIds.length === 0) return;
+
+  try {
+    const reunions = await getMyReunions(userIds[0], {
+      typeReunion: search.typeReunion ? Number(search.typeReunion) : undefined,
+      collaborateur: search.collaborateur,
+      dateDebutMin: search.dateDebut,
+      dateDebutMax: search.dateFin,
+    });
+
+    console.log("Résultat filtré :", reunions);
+  } catch (error) {
+    console.error("Erreur recherche :", error);
+  }
+}, [search, selectedUserInput, subordinates]);
+
 
   const formatChartData = () => {
     if (monthlyReunionData.length === 0) {
@@ -145,6 +169,8 @@ const Accueil = () => {
     (sub) => !selectedUserInput.some((selected) => selected.id === sub.id)
   );
 
+  
+
   return (
     <DefaultLayout>
       <div className="mx-2 py-4 md:mx-10 space-y-10">
@@ -158,19 +184,53 @@ const Accueil = () => {
         {/* ============ FILTER START =========== */}
         <div className="filter-section">
           <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-8 gap-5">
-            <div>
-              <CustomInput type="text" placeholder="Tous" label="Type de réunion" rounded="medium" />
-            </div>
-            <CustomInputUserSpecifiedSearch
-              label="Collaborateur"
-              rounded="medium"
-              placeholder="Nom"
-              user={availableSubordinates}
-              userSelected={selectedUserInput}
-              setUserSelected={setSelectedUserInput}
-            />
-            <CustomInput type="date" value={""} label="Du" rounded="medium" />
-            <CustomInput type="date" value={""} label="Au" rounded="medium" />
+<div>
+  <label className="mb-1 text-sm font-medium">Type de réunion</label>
+  <select
+    className="border rounded-md px-3 py-2 text-sm w-full"
+    value={search.typeReunion ?? ""}
+    onChange={(e) =>
+      setSearch((prev) => ({
+        ...prev,
+        typeReunion: e.target.value ? Number(e.target.value) : undefined,
+      }))
+    }
+  >
+    <option value="">Tous</option>
+    {TYPE_REUNION_OPTIONS.map((opt) => (
+      <option key={opt.value} value={opt.value}>
+        {opt.label}
+      </option>
+    ))}
+  </select>
+</div>
+
+
+<CustomInput
+  type="text"
+  placeholder="Nom collaborateur"
+  label="Collaborateur"
+  rounded="medium"
+  value={search.collaborateur ?? ""}
+  onChange={(e) => setSearch((prev) => ({ ...prev, collaborateur: e.target.value }))}
+/>
+
+<CustomInput
+  type="date"
+  label="Du"
+  rounded="medium"
+  value={search.dateDebut ?? ""}
+  onChange={(e) => setSearch((prev) => ({ ...prev, dateDebut: e.target.value }))}
+/>
+
+<CustomInput
+  type="date"
+  label="Au"
+  rounded="medium"
+  value={search.dateFin ?? ""}
+  onChange={(e) => setSearch((prev) => ({ ...prev, dateFin: e.target.value }))}
+/>
+
 
             <div className="flex items-end gap-2 mb-0.5">
               <div className="pb-2">
@@ -211,9 +271,15 @@ const Accueil = () => {
 
             {/* Colonne centrale : Réunions de la journée */}
             <div>
-              <MeetingCard
-               
-              />
+            <MeetingCard
+              filters={{
+                typeReunion: search.typeReunion,
+                collaborateur: search.collaborateur,
+                dateDebutMin: search.dateDebut,
+                dateDebutMax: search.dateFin,
+              }}
+            />
+
             </div>
 
             {/* Colonne droite : 3 cards verticalement */}
