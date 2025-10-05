@@ -19,7 +19,7 @@ const MeetingCard: React.FC<MeetingCardProps> = ({ filters }) => {
   const [reunions, setReunions] = useState<Reunion[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string>("000465d0-0530-41d9-872f-d6012418ba7e");
+  const [userId, setUserId] = useState<string>("");
 
   useEffect(() => {
     const userData = localStorage.getItem("userId");

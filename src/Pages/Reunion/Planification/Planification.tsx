@@ -16,7 +16,27 @@ import frLocale from "@fullcalendar/core/locales/fr";
 import { outlookService, OutlookEvent } from "../../../services/Reunion/outlookService";
 import PerPageInput from "../../../components/UIElements/PerPageInput";
 import Pagination from "../../../components/Tables/Pagination";
+const TYPE_REUNION_OPTIONS = [
+  { value: 1, label: "Transverse" },
+  { value: 2, label: "Projet" },
+];
+const getTypeLabelFromReunion = (r: any): string | undefined => {
+  // Le backend peut renvoyer:
+  // - r.type_reunion: "Projet"/"Transverse" (le plus courant)
+  // - r.type: 1/2 (éventuellement)
+  // - r.typeReunion: idem
+  const raw = r?.type_reunion ?? r?.type ?? r?.typeReunion;
 
+  if (raw == null) return undefined;
+
+  if (typeof raw === "string") {
+    return raw.trim(); // "Projet" / "Transverse"
+  }
+
+  // si c'est numérique (1/2), mappe vers libellé
+  const found = TYPE_REUNION_OPTIONS.find(o => o.value === Number(raw));
+  return found?.label;
+};
 const Planification = () => {
     const navigate = useNavigate();
     const [activeView, setActiveView] = useState<"list" | "calendar">("list");
@@ -30,57 +50,68 @@ const Planification = () => {
     const [entriesPerPage, setEntriesPerPage] = useState(5);
     const [actualPage, setActualPage] = useState(1);
     const [pageNumbers, setPageNumbers] = useState(1);
+    const today = new Date().toISOString().split("T")[0];
+
     const [filters, setFilters] = useState({
-        typeReunion: "",
-        dateDebut: "",
-        dateFin: ""
+    typeReunion: undefined as number | undefined,
+    dateDebut: today,
+    dateFin: today,
     });
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                let data: Reunion[] = [];
+    const fetchData = async () => {
+        try {
+        setLoading(true);
+        let data: Reunion[] = [];
 
-                if (activeTab === "all") {
-                    data = await listAllReunion();
-                } else if (activeTab === "mine") {
-                    const storedUserId = localStorage.getItem("userId");
-                    
-                    if(storedUserId) {
-                        data = await getMyReunions(storedUserId);
-                    } else {
-                        console.warn("Aucun userId trouvé dans le localStorage");
-                    }
-                } else if (activeTab === "outlook") {
-                    // Les événements Outlook seront chargés séparément
-                    setOutlookLoading(true);
-                    try {
-                        const events = await outlookService.getEvents();
-                        setOutlookEvents(events);
-                    } catch (error) {
-                        console.error("Erreur lors du chargement des événements Outlook:", error);
-                    } finally {
-                        setOutlookLoading(false);
-                    }
-                }
-
-                setReunions(data);
-
-                const totalItems = activeTab === "outlook" ? outlookEvents.length : data.length;
-                setPageNumbers(Math.ceil(totalItems / entriesPerPage));
-            } catch (error) {
-                console.error("Erreur lors du chargement des réunions:", error);
-                setReunions([]);
-                setPageNumbers(1);
-            } finally {
-                setLoading(false);
+        if (activeTab === "all") {
+            data = await listAllReunion({
+            typeReunion: filters.typeReunion ? Number(filters.typeReunion) : undefined,
+            dateDebutMin: filters.dateDebut,
+            dateDebutMax: filters.dateFin,
+            });
+        } else if (activeTab === "mine") {
+            const storedUserId = localStorage.getItem("userId");
+            if (storedUserId) {
+            data = await getMyReunions(storedUserId, {
+                typeReunion: filters.typeReunion ? Number(filters.typeReunion) : undefined,
+                dateDebutMin: filters.dateDebut,
+                dateDebutMax: filters.dateFin,
+            });
             }
-        };
+        } else if (activeTab === "outlook") {
+            setOutlookLoading(true);
+            try {
+            const events = await outlookService.getEvents();
+            setOutlookEvents(events);
+            } finally {
+            setOutlookLoading(false);
+            }
+        }
 
-        fetchData();
-    }, [activeTab, entriesPerPage]); 
+        // 🔍 log pour vérifier ce que renvoie le backend
+        console.log("Réunions reçues:", data.map(d => d.type_reunion));
 
+        setReunions(data);
+        const totalItems = activeTab === "outlook" ? outlookEvents.length : data.length;
+        setPageNumbers(Math.ceil(totalItems / entriesPerPage));
+        } catch (error) {
+        console.error("Erreur lors du chargement des réunions:", error);
+        setReunions([]);
+        setPageNumbers(1);
+        } finally {
+        setLoading(false);
+        }
+    };
+
+    fetchData();
+    }, [
+    activeTab,
+    entriesPerPage,
+    filters.typeReunion,
+    filters.dateDebut,
+    filters.dateFin
+    ]);
    
 
     const handleSelectAllReunions = () => {
@@ -114,19 +145,48 @@ const Planification = () => {
     };
 
     const clearFilters = () => {
-        setFilters({
-            typeReunion: "",
-            dateDebut: "",
-            dateFin: ""
-        });
+    setFilters({
+        typeReunion: "",
+        dateDebut: today,
+        dateFin: today,
+    });
     };
 
-    const filteredReunions = reunions.filter(reunion => {
-        // if (filters.typeReunion && reunion.type !== filters.typeReunion) return false;
-        if (filters.dateDebut && new Date(reunion.dateDebut) < new Date(filters.dateDebut)) return false;
-        if (filters.dateFin && new Date(reunion.dateFin || reunion.dateDebut) > new Date(filters.dateFin)) return false;
-        return true;
+
+    const filteredReunions = reunions.filter((reunion) => {
+    // === On récupère le type réel ===
+    const raw = reunion.type_reunion ?? reunion.type ?? reunion.typeReunion;
+
+    // Normalisation
+    let currentValue: number | null = null;
+
+    if (typeof raw === "number") {
+        currentValue = raw;
+    } else if (typeof raw === "string") {
+        const t = raw.trim().toLowerCase();
+        if (t.includes("projet") || t === "2") currentValue = 2;
+        else if (t.includes("transverse") || t === "1") currentValue = 1;
+    }
+
+    // === Filtre par type si un filtre est défini ===
+    if (filters.typeReunion && Number(filters.typeReunion) !== currentValue) {
+        return false;
+    }
+
+    // === Filtre par date ===
+    const dateDebut = new Date(reunion.dateDebut);
+    const dateFin = new Date(reunion.dateFin || reunion.dateDebut);
+    const min = new Date(filters.dateDebut);
+    const max = new Date(filters.dateFin);
+
+    if (filters.dateDebut && dateDebut < min) return false;
+    if (filters.dateFin && dateFin > max) return false;
+
+    return true;
     });
+
+
+
 
     const filteredOutlookEvents = outlookEvents.filter(event => {
         if (filters.dateDebut && new Date(event.start.dateTime) < new Date(filters.dateDebut)) return false;
@@ -157,9 +217,9 @@ const Planification = () => {
         }))
     ];
 
-     useEffect(() => {
-        const totalItems = activeTab === "outlook" ? filteredOutlookEvents.length : filteredReunions.length;
-        setPageNumbers(Math.ceil(totalItems / entriesPerPage));
+    useEffect(() => {
+    const totalItems = activeTab === "outlook" ? filteredOutlookEvents.length : filteredReunions.length;
+    setPageNumbers(Math.ceil(totalItems / entriesPerPage));
     }, [filteredReunions, filteredOutlookEvents, entriesPerPage, activeTab]);
 
     const getPaginatedData = () => {
@@ -353,12 +413,10 @@ const formatDateTime = (dateTime: string, timeZone: string) => {
 
                         <div className="flex gap-3 m-5 flex-wrap justify-between items-center">
                             <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 grid-cols-1 gap-3 w-full">
-                                <CustomSelect
-                                    label="Type reunion"
-                                    data={["Réunion Transverse", "Réunion Projet"]}
-                                    value={filters.typeReunion}
-                                    onValueChange={(value) => handleFilterChange("typeReunion", value)}
-                                />
+                        
+
+
+
                                 <CustomInput
                                     type="date"
                                     value={filters.dateDebut}
