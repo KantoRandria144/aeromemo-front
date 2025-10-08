@@ -91,7 +91,7 @@ const DetailsReunion = () => {
     setQrCodeLoading(true);
     try {
       const userId = localStorage.getItem("userId") || "demo-user";
-      const apiUrl = generateCheckInUrl("06549ecf-3dbd-448d-a90d-55ac12005e72", reunion.id);
+      const apiUrl = generateCheckInUrl(userId, reunion.id);
 
       console.log("URL du QR Code:", apiUrl);
 
