@@ -2,7 +2,7 @@ import axios from "axios";
 import { Participant, Reunion } from "../../types/reunion";
 
 const endPoint = import.meta.env.VITE_API_ENDPOINT;
-
+const endPoint_serveur = import.meta.env.VITE_API_ENDPOINT_SERVER;
 // ✅ DTO pour créer un QR Code
 export type CreateQRCodeDTO = {
   reunionid: string;
@@ -132,4 +132,47 @@ export const getQRCodeInfo = async (
     console.error("Erreur lors de la récupération des infos du QR code:", error);
     throw error;
   }
+};
+
+export const scanCheckIn = async (
+  userId: string,
+  reunionId: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const url = `${endPoint_serveur}/api/participant/scan-checkin?userId=${userId}&reunionId=${reunionId}`;
+
+    const response = await axios.get(url);
+
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Erreur API scan-checkin:", error);
+
+    // Gestion propre de l'erreur
+    if (error.response) {
+      return {
+        success: false,
+        message: error.response.data?.message || "Erreur serveur",
+      };
+    } else if (error.request) {
+      return {
+        success: false,
+        message: "Aucune réponse du serveur. Vérifie la connexion réseau.",
+      };
+    } else {
+      return {
+        success: false,
+        message: error.message || "Erreur inconnue",
+      };
+    }
+  }
+};
+
+/**
+ * 🔹 Génère l'URL de check-in à inclure dans le QR code
+ * @param userId ID utilisateur
+ * @param reunionId ID réunion
+ * @returns {string} URL complète
+ */
+export const generateCheckInUrl = (userId: string, reunionId: string): string => {
+  return `${endPoint_serveur}/api/participant/scan-checkin?userId=${userId}&reunionId=${reunionId}`;
 };
