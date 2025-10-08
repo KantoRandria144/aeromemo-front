@@ -22,6 +22,7 @@ export type ParticipantDTO = {
   userName: string; // nom complet de l'utilisateur
   type: string;
   state: string;
+  checkIn:string;
 };
 
 export interface UpdateReunion {
