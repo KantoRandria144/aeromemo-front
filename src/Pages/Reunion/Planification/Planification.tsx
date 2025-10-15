@@ -50,69 +50,60 @@ const Planification = () => {
     const [entriesPerPage, setEntriesPerPage] = useState(5);
     const [actualPage, setActualPage] = useState(1);
     const [pageNumbers, setPageNumbers] = useState(1);
-    const today = new Date().toISOString().split("T")[0];
+    //const today = new Date().toISOString().split("T")[0];
 
     const [filters, setFilters] = useState({
     typeReunion: undefined as number | undefined,
-    dateDebut: today,
-    dateFin: today,
+    dateDebut: "",
+    dateFin: "",
     });
 
-    useEffect(() => {
-    const fetchData = async () => {
-        try {
-        setLoading(true);
-        let data: Reunion[] = [];
+     const fetchData = async () => {
+    try {
+      setLoading(true);
+      let data: Reunion[] = [];
 
-        if (activeTab === "all") {
-            data = await listAllReunion({
+      if (activeTab === "all") {
+        data = await listAllReunion({
+          typeReunion: filters.typeReunion ? Number(filters.typeReunion) : undefined,
+          dateDebutMin: filters.dateDebut || undefined,
+          dateDebutMax: filters.dateFin || undefined,
+        });
+      } else if (activeTab === "mine") {
+        const storedUserId = localStorage.getItem("userId");
+        if (storedUserId) {
+          data = await getMyReunions(storedUserId, {
             typeReunion: filters.typeReunion ? Number(filters.typeReunion) : undefined,
-            dateDebutMin: filters.dateDebut,
-            dateDebutMax: filters.dateFin,
-            });
-        } else if (activeTab === "mine") {
-            const storedUserId = localStorage.getItem("userId");
-            if (storedUserId) {
-            data = await getMyReunions(storedUserId, {
-                typeReunion: filters.typeReunion ? Number(filters.typeReunion) : undefined,
-                dateDebutMin: filters.dateDebut,
-                dateDebutMax: filters.dateFin,
-            });
-            }
-        } else if (activeTab === "outlook") {
-            setOutlookLoading(true);
-            try {
-            const events = await outlookService.getEvents();
-            setOutlookEvents(events);
-            } finally {
-            setOutlookLoading(false);
-            }
+            dateDebutMin: filters.dateDebut || undefined,
+            dateDebutMax: filters.dateFin || undefined,
+          });
         }
-
-        // 🔍 log pour vérifier ce que renvoie le backend
-        console.log("Réunions reçues:", data.map(d => d.type_reunion));
-
-        setReunions(data);
-        const totalItems = activeTab === "outlook" ? outlookEvents.length : data.length;
-        setPageNumbers(Math.ceil(totalItems / entriesPerPage));
-        } catch (error) {
-        console.error("Erreur lors du chargement des réunions:", error);
-        setReunions([]);
-        setPageNumbers(1);
+      } else if (activeTab === "outlook") {
+        setOutlookLoading(true);
+        try {
+          const events = await outlookService.getEvents();
+          setOutlookEvents(events);
         } finally {
-        setLoading(false);
+          setOutlookLoading(false);
         }
-    };
+      }
 
-    fetchData();
-    }, [
-    activeTab,
-    entriesPerPage,
-    filters.typeReunion,
-    filters.dateDebut,
-    filters.dateFin
-    ]);
+      setReunions(data);
+      const totalItems = activeTab === "outlook" ? outlookEvents.length : data.length;
+      setPageNumbers(Math.ceil(totalItems / entriesPerPage));
+    } catch (error) {
+      console.error("Erreur lors du chargement des réunions:", error);
+      setReunions([]);
+      setPageNumbers(1);
+    } finally {
+      setLoading(false);
+    }
+  };
    
+useEffect(() => {
+    fetchData();
+  }, [activeTab, entriesPerPage]);
+
 
     const handleSelectAllReunions = () => {
         if (reunions) {
@@ -172,15 +163,16 @@ const Planification = () => {
     if (filters.typeReunion && Number(filters.typeReunion) !== currentValue) {
         return false;
     }
-
+    if (!filters.dateDebut && !filters.dateFin) return true;
     // === Filtre par date ===
     const dateDebut = new Date(reunion.dateDebut);
     const dateFin = new Date(reunion.dateFin || reunion.dateDebut);
-    const min = new Date(filters.dateDebut);
-    const max = new Date(filters.dateFin);
+    // const min = new Date(filters.dateDebut);
+    // const max = new Date(filters.dateFin);
 
-    if (filters.dateDebut && dateDebut < min) return false;
-    if (filters.dateFin && dateFin > max) return false;
+if (filters.dateDebut && dateDebut < new Date(filters.dateDebut)) return false;
+if (filters.dateFin && dateFin > new Date(filters.dateFin)) return false;
+
 
     return true;
     });
@@ -189,6 +181,7 @@ const Planification = () => {
 
 
     const filteredOutlookEvents = outlookEvents.filter(event => {
+        if (!filters.dateDebut && !filters.dateFin) return true;
         if (filters.dateDebut && new Date(event.start.dateTime) < new Date(filters.dateDebut)) return false;
         if (filters.dateFin && new Date(event.end.dateTime) > new Date(filters.dateFin)) return false;
         return true;
@@ -217,14 +210,21 @@ const Planification = () => {
         }))
     ];
 
-    useEffect(() => {
-    const totalItems = activeTab === "outlook" ? filteredOutlookEvents.length : filteredReunions.length;
-    setPageNumbers(Math.ceil(totalItems / entriesPerPage));
-    }, [filteredReunions, filteredOutlookEvents, entriesPerPage, activeTab]);
+     const getPaginatedData = () => {
+    const startIndex = (actualPage - 1) * entriesPerPage;
+    const endIndex = startIndex + entriesPerPage;
+    if (activeTab === "outlook") return filteredOutlookEvents.slice(startIndex, endIndex);
+    return filteredReunions.slice(startIndex, endIndex);
+  };
 
-    const getPaginatedData = () => {
-        
-    }
+  useEffect(() => {
+    const totalItems =
+      activeTab === "outlook" ? filteredOutlookEvents.length : filteredReunions.length;
+    const totalPages = Math.ceil(totalItems / entriesPerPage);
+    setPageNumbers(totalPages);
+    if (actualPage > totalPages) setActualPage(1);
+  }, [filteredReunions, filteredOutlookEvents, entriesPerPage, activeTab]);
+
     // Composant pour afficher un participant avec la couleur appropriée
     const ParticipantAvatar = ({ nom, type, showTooltip = true }: { 
     nom: string; 
@@ -420,14 +420,14 @@ const formatDateTime = (dateTime: string, timeZone: string) => {
                                 <CustomInput
                                     type="date"
                                     value={filters.dateDebut}
-                                    label="Date début"
+                                    label="Du"
                                     rounded="medium"
                                     onChange={(e) => handleFilterChange("dateDebut", e.target.value)}
                                 />
                                 <CustomInput
                                     type="date"
                                     value={filters.dateFin}
-                                    label="Date de fin"
+                                    label="Au"
                                     rounded="medium"
                                     onChange={(e) => handleFilterChange("dateFin", e.target.value)}
                                 />
@@ -458,6 +458,10 @@ const formatDateTime = (dateTime: string, timeZone: string) => {
                                     <div>
                                         <button
                                             type="button"
+                                            onClick={() => {
+                                                setActualPage(1);
+                                                fetchData();
+                                            }}
                                             className="px-2 cursor-pointer mt-2 py-2 lg:px-3 xl:px-2 text-center font-medium text-sm text-white hover:bg-opacity-90 border border-primaryGreen bg-primaryGreen rounded-lg dark:border-darkgreen dark:bg-darkgreen dark:hover:bg-opacity-90 md:ease-in md:duration-300 md:transform"
                                         >
                                             Rechercher
@@ -616,8 +620,8 @@ const formatDateTime = (dateTime: string, timeZone: string) => {
                                         </thead>
                                        <tbody>
                                         {activeTab === "all" ? (
-                                            filteredReunions && filteredReunions.length > 0 ? (
-                                            filteredReunions.map((reunion) => (
+                                            getPaginatedData() && getPaginatedData().length > 0 ? (
+                                            getPaginatedData().map((reunion) => (
                                                 <tr key={reunion.id} className="border-b hover:bg-gray-50 dark:hover:bg-boxdark2">
                                                 {/* <td className="pl-2 border-b border-[#eee] dark:border-strokedark">
                                                     <button
@@ -691,14 +695,19 @@ const formatDateTime = (dateTime: string, timeZone: string) => {
                                                 <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
                                                     <p
                                                     className={`font-semibold rounded-md text-center py-1 px-2 text-xs w-fit ${
-                                                        reunion.etat === EtatReunion.Planifie
-                                                            ? "bg-green-100 border text-green-600 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700"
-                                                        : reunion.etat === EtatReunion.Annule
-                                                            ? "bg-red-100 border text-red-600 border-red-300 dark:bg-red-900 dark:text-red-300 dark:border-red-700"
-                                                            : "bg-gray-100 border text-gray-600 border-gray-300 dark:bg-gray-900 dark:text-gray-300 dark:border-gray-700"
-                                                    }`}
+      reunion.etat === "Planifie"
+        ? "bg-green-100 border text-green-600 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700"
+      : reunion.etat === "EnCours"
+        ? "bg-cyan-100 border text-cyan-600 border-cyan-300 dark:bg-cyan-900 dark:text-cyan-300 dark:border-cyan-700"
+      : reunion.etat === "Termine"
+        ? "bg-emerald-100 border text-emerald-600 border-emerald-300 dark:bg-emerald-900 dark:text-emerald-300 dark:border-emerald-700"
+      : reunion.etat === "Annule"
+        ? "bg-red-100 border text-red-600 border-red-300 dark:bg-red-900 dark:text-red-300 dark:border-red-700"
+      : "bg-green-100 border text-green-600 border-green-300 dark:bg-green-900 dark:text-green-300 dark:border-green-700"
+    }`}
                                                     >
-                                                    {reunion.etat}
+                                                    {EtatReunion[reunion.etat as keyof typeof EtatReunion] || reunion.etat}
+
                                                     </p>
                                                 </td>
                                                 <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
@@ -722,8 +731,8 @@ const formatDateTime = (dateTime: string, timeZone: string) => {
                                             </tr>
                                             )
                                         ) : activeTab === "mine" ? (
-                                            filteredReunions && filteredReunions.length > 0 ? (
-                                            filteredReunions.map((reunion) => (
+                                            getPaginatedData() && getPaginatedData().length > 0 ? (
+                                            getPaginatedData().map((reunion) => (
                                                 <tr key={reunion.id} className="border-b hover:bg-gray-50 dark:hover:bg-boxdark2">
                                                     <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark">
                                                         <button
@@ -821,8 +830,8 @@ const formatDateTime = (dateTime: string, timeZone: string) => {
                                                         Chargement des événements Outlook...
                                                     </td>
                                                 </tr>
-                                            ) : filteredOutlookEvents && filteredOutlookEvents.length > 0 ? (
-                                                filteredOutlookEvents.map((event) => (
+                                            ) : getPaginatedData() && getPaginatedData().length > 0 ? (
+                                                getPaginatedData().map((event) => (
                                                     <tr key={event.id} className="border-b hover:bg-gray-50 dark:hover:bg-boxdark2">
                                                         <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
                                                             {formatDateTime(event.start.dateTime, event.start.timeZone)}
@@ -909,7 +918,7 @@ const formatDateTime = (dateTime: string, timeZone: string) => {
                         )}
                     </div>
                     <div className="flex flex-col flex-wrap md:flex-row justify-end px-4 items-center">
-                        {/* <PerPageInput
+                        <PerPageInput
                             entriesPerPage={entriesPerPage}
                             setEntriesPerPage={setEntriesPerPage}
                             setPage={setActualPage}
@@ -918,7 +927,7 @@ const formatDateTime = (dateTime: string, timeZone: string) => {
                             actualPage={actualPage}
                             setActualPage={setActualPage}
                             pageNumbers={pageNumbers}
-                        /> */}
+                        />
                     </div>
                 </>
             </div>

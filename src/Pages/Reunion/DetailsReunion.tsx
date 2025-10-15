@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import DefaultLayout from "../../components/layout/DefaultLayout";
-import { getReunionById } from "../../services/Reunion/ReunionServices";
+import { getReunionById, buildOutlookUrl, buildTeamsUrl } from "../../services/Reunion/ReunionServices";
 import { Reunion, ParticipantDTO } from "../../types/reunion";
 import { formatDate, formatTime } from "../../services/Function/DateServices";
 import { Mic, MicOff, QrCode, Square, Download, RefreshCw } from "lucide-react";
 import { generateCheckInUrl } from "../../services/Reunion/QRCodeService";
 import QRCode from "qrcode";
+import Breadcrumb from "../../components/BreadCrumbs/BreadCrumb";
 
 const endPoint = import.meta.env.VITE_API_ENDPOINT;
 
@@ -28,6 +29,8 @@ const generateReunionHash = (reunion: Reunion): string => {
 
 const DetailsReunion = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
   const [reunion, setReunion] = useState<Reunion | null>(null);
   const [originalReunion, setOriginalReunion] = useState<Reunion | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,14 +39,14 @@ const DetailsReunion = () => {
   const [qrCodeGenerated, setQrCodeGenerated] = useState(false);
   const [reunionModified, setReunionModified] = useState(false);
   const [qrCodeLoaded, setQrCodeLoaded] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [showActions, setShowActions] = useState(false);
 
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const [transcriptionLoading, setTranscriptionLoading] = useState(false);
   const [transcriptionActive, setTranscriptionActive] = useState(false);
-
-  // 🔹 Nouveau : modal de confirmation de scan
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
@@ -193,7 +196,7 @@ const DetailsReunion = () => {
     }
   };
 
-  // 🕒 Vérifie toutes les 5 secondes si un participant a scanné le QR code
+  // 🔁 Vérifie toutes les 5 secondes si un participant a scanné le QR code
   useEffect(() => {
     if (!id) return;
 
@@ -228,10 +231,61 @@ const DetailsReunion = () => {
   return (
     <DefaultLayout>
       <div className="p-6 md:p-10">
-        <h2 className="text-lg font-semibold">Réunion</h2>
-        <p className="text-sm text-gray-500 mb-6">Détails</p>
+        <Breadcrumb
+          paths={[
+            { name: "Réunion", to: "/aeromemo/planification" },
+            { name: "Créer Réunion" },
+          ]}
+        />
+          
+          {/* ✅ Bouton Actions à droite */}
+        <div className="flex justify-end mb-4">
+          <div className="relative inline-block text-left">
+            <button
+              onClick={() => setShowActions((prev) => !prev)}
+              className="bg-green-700 text-white px-4 py-2 rounded-lg shadow hover:bg-green-800 focus:outline-none flex items-center gap-2"
+            >
+              ⚙️ Actions
+            </button>
 
+            {showActions && (
+              <div className="absolute right-0 mt-2 w-56 bg-white border rounded-lg shadow-lg z-50 dark:bg-boxdark dark:border-form-strokedark">
+                <button
+                  onClick={() => navigate(`/aeromemo/reunion/modification/${reunion?.id}`)}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-boxdark2"
+                >
+                  ✏️ Modifier
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (reunion) {
+                      const outlookUrl = buildOutlookUrl(reunion);
+                      window.open(outlookUrl, "_blank");
+                    }
+                  }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-boxdark2"
+                >
+                  📅 Ouvrir dans Outlook
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (reunion) {
+                      const teamsUrl = buildTeamsUrl(reunion);
+                      window.open(teamsUrl, "_blank");
+                    }
+                  }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-boxdark2"
+                >
+                  💬 Rejoindre sur Teams
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
         <div className="h-full min-h-screen bg-white rounded-2xl shadow-md p-6">
+          {/* Informations principales */}
           <div className="flex flex-col md:flex-row gap-10 mb-10">
             <div className="bg-gray-50 rounded-lg p-6 flex-1 shadow-sm">
               <h3 className="text-left font-bold text-zinc-600 text-xl md:text-2xl mb-6">
@@ -244,13 +298,13 @@ const DetailsReunion = () => {
                 </span>
               </p>
               <p className="mb-3">
-                Date début: {reunion.dateDebut ? formatDate(reunion.dateDebut) : ""} à{" "}
-                {reunion.heureDebut ? formatTime(reunion.heureDebut) : ""} -{" "}
-                {reunion.heureFin ? formatTime(reunion.heureFin) : ""}
+                Date début: {formatDate(reunion.dateDebut)} à{" "}
+                {formatTime(reunion.heureDebut)} - {formatTime(reunion.heureFin)}
               </p>
               <p className="mb-3">Emplacement: {reunion.emplacement}</p>
             </div>
 
+            {/* QR Code */}
             <div className="bg-gray-50 rounded-lg p-6 w-full md:w-1/3 flex flex-col items-center justify-start shadow-sm">
               <h3 className="text-center font-bold text-zinc-600 text-xl mb-6">QR Code</h3>
 
@@ -297,6 +351,7 @@ const DetailsReunion = () => {
             </div>
           </div>
 
+          {/* Liste des participants */}
           <div className="mt-6">
             <h3 className="font-semibold mb-3">Liste des participants</h3>
             <table className="w-full border-collapse border border-gray-200 rounded-lg overflow-hidden">
@@ -336,6 +391,47 @@ const DetailsReunion = () => {
                 )}
               </tbody>
             </table>
+
+            {/* Boutons transcription & CR */}
+            <div className="flex justify-between mt-6">
+              <button
+                onClick={() => setShowQRModal(true)}
+                disabled={!qrCodeGenerated}
+                className="bg-green-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 disabled:opacity-50"
+              >
+                <QrCode size={18} /> Voir QR Code
+              </button>
+
+              <button
+                onClick={handleToggleTranscription}
+                disabled={transcriptionLoading}
+                className={`px-4 py-2 rounded-lg shadow flex items-center gap-2 transition-colors ${
+                  transcriptionActive
+                    ? "bg-red-600 text-white hover:bg-red-700"
+                    : "bg-white border border-green-600 text-green-600 hover:bg-green-50"
+                } disabled:opacity-50`}
+              >
+                {transcriptionLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                    Traitement...
+                  </>
+                ) : transcriptionActive ? (
+                  <>
+                    {isRecording ? <MicOff size={18} /> : <Square size={18} />}
+                    Arrêter transcription
+                  </>
+                ) : (
+                  <>
+                    <Mic size={18} /> Activer transcription audio
+                  </>
+                )}
+              </button>
+
+              <button className="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700">
+                Générer CR
+              </button>
+            </div>
           </div>
         </div>
       </div>
