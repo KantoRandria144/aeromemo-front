@@ -476,7 +476,7 @@ const formatDateTime = (dateTime: string, timeZone: string) => {
                         ) : (
                             <>
                                 {/* Bulk actions when items are selected */}
-                                {activeTab !== "outlook" && (
+                                {/* {activeTab !== "outlook" && (
                                     <div
                                         className={`mt-2 border-primaryGreen border dark:border-formStrokedark bg-white dark:bg-boxdark z-40 relative px-2 flex items-center justify-between transition-transform duration-200 ease-in-out transform ${
                                             selectedReunions.length > 0
@@ -500,7 +500,7 @@ const formatDateTime = (dateTime: string, timeZone: string) => {
                                             </button>
                                         </div>
                                     </div>
-                                )}
+                                )} */}
                              
                                 <div className="max-w-full overflow-x-auto">
                                     <table className="w-full text-sm hidden md:table table-auto">
@@ -734,7 +734,7 @@ const formatDateTime = (dateTime: string, timeZone: string) => {
                                             getPaginatedData() && getPaginatedData().length > 0 ? (
                                             getPaginatedData().map((reunion) => (
                                                 <tr key={reunion.id} className="border-b hover:bg-gray-50 dark:hover:bg-boxdark2">
-                                                    <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark">
+                                                    {/* <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark">
                                                         <button
                                                             className="cursor-pointer border w-5 h-5"
                                                             onClick={() => handleSelectReunion(reunion.id)}
@@ -758,7 +758,7 @@ const formatDateTime = (dateTime: string, timeZone: string) => {
                                                                 />
                                                             </svg>
                                                         </button>
-                                                    </td>
+                                                    </td> */}
                                                 <td className="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark">
                                                     {new Date(reunion.dateDebut).toLocaleDateString()}
                                                 </td>

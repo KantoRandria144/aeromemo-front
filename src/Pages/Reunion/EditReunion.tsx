@@ -22,7 +22,7 @@ const ETAT_REUNION_OPTIONS = [
     { value: 1, label: "Planifié" },
     { value: 2, label: "En cours" },
     { value: 3, label: "Terminé" },
-    { value: 3, label: "Annulé" }
+    { value: 4, label: "Annulé" }
 ];
 
 const TYPE_REUNION_OPTIONS = [

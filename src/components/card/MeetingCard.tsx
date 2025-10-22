@@ -13,8 +13,6 @@ interface MeetingCardProps {
   };
 }
 
-
-
 const MeetingCard: React.FC<MeetingCardProps> = ({ filters }) => {
   const [reunions, setReunions] = useState<Reunion[]>([]);
   const [loading, setLoading] = useState<boolean>(true);

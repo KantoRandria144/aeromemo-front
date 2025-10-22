@@ -106,16 +106,16 @@ const Accueil = () => {
     [selectedUserInput, subordinates]
   );
 
-  const handleResetFilters = useCallback(() => {
-    const allUserIds = subordinates.map((user) => user.id);
+  // const handleResetFilters = useCallback(() => {
+  //   const allUserIds = subordinates.map((user) => user.id);
 
-    setSelectedUserInput([]);
-    setSearch({
-      ids: allUserIds,
-      dateDebut: undefined,
-      dateFin: undefined,
-    });
-  }, [subordinates]);
+  //   setSelectedUserInput([]);
+  //   setSearch({
+  //     ids: allUserIds,
+  //     dateDebut: undefined,
+  //     dateFin: undefined,
+  //   });
+  // }, [subordinates]);
 
 const handleSearch = useCallback(async () => {
   const userIds =
@@ -187,7 +187,7 @@ const handleSearch = useCallback(async () => {
 <div>
   <label className="mb-1 text-sm font-medium">Type de réunion</label>
   <select
-    className="border rounded-md px-3 py-2 text-sm w-full"
+    className="w-full text-sm py-2 px-2 md:h-10 border flex items-center justify-between border-stroke dark:border-formStrokedark rounded-md bg-transparent text-left whitespace-nowrap overflow-hidden text-ellipsis"
     value={search.typeReunion ?? ""}
     onChange={(e) =>
       setSearch((prev) => ({
@@ -293,7 +293,7 @@ const handleSearch = useCallback(async () => {
         {/* ============ SECTION MEETINGS + CARDS END ============= */}
 
         {/* ============ CHARTS START ========== */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Temps passé en réunion</h3>
             <BarChart 
@@ -314,7 +314,7 @@ const handleSearch = useCallback(async () => {
               />
             </div>
           </div>
-        </div>
+        </div> */}
         {/* ============ CHARTS END ========== */}
       </div>
     </DefaultLayout>

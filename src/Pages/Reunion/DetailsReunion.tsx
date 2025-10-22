@@ -47,7 +47,13 @@ const DetailsReunion = () => {
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const [transcriptionLoading, setTranscriptionLoading] = useState(false);
   const [transcriptionActive, setTranscriptionActive] = useState(false);
-  const [showModal, setShowModal] = useState(false);
+  const [showTranscriptionModal, setShowTranscriptionModal] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string>("/videos/reunion-demo.mp4");
+
+
+  const [uploading, setUploading] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [transcriptionResult, setTranscriptionResult] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchReunion = async () => {
@@ -88,30 +94,39 @@ const DetailsReunion = () => {
     }
   }, [reunion, originalReunion]);
 
-  const handleGenerateQRCode = async () => {
-    if (!reunion?.id) return;
+const handleGenerateQRCode = async () => {
+  if (!reunion?.id) return;
 
-    setQrCodeLoading(true);
-    try {
-      const userId = localStorage.getItem("userId") || "demo-user";
-      const apiUrl = generateCheckInUrl(userId, reunion.id);
+  setQrCodeLoading(true);
+  try {
+    const userId = localStorage.getItem("userId") || "demo-user";
+    const apiUrl = generateCheckInUrl(userId, reunion.id);
 
-      console.log("URL du QR Code:", apiUrl);
+    console.log("URL du QR Code:", apiUrl);
 
-      const qrCodeDataUrl = await QRCode.toDataURL(apiUrl, {
-        width: 300,
-        margin: 2,
-        color: { dark: "#000000", light: "#ffffff" },
-      });
+    const qrCodeDataUrl = await QRCode.toDataURL(apiUrl, {
+      width: 300,
+      margin: 2,
+      color: { dark: "#000000", light: "#ffffff" },
+    });
 
-      setQrCodeUrl(qrCodeDataUrl);
-      setQrCodeGenerated(true);
-    } catch (error) {
-      console.error("Erreur QR:", error);
-    } finally {
-      setQrCodeLoading(false);
-    }
-  };
+    const reunionHash = generateReunionHash(reunion);
+
+    // ✅ Sauvegarde du QR code et du hash
+    localStorage.setItem(
+      `qrCodeData_${reunion.id}`,
+      JSON.stringify({ qrCodeUrl: qrCodeDataUrl, reunionHash })
+    );
+
+    setQrCodeUrl(qrCodeDataUrl);
+    setQrCodeGenerated(true);
+  } catch (error) {
+    console.error("Erreur QR:", error);
+  } finally {
+    setQrCodeLoading(false);
+  }
+};
+
 
   const handleDownloadQRCode = () => {
     if (!qrCodeUrl) return;
@@ -197,33 +212,64 @@ const DetailsReunion = () => {
   };
 
   // 🔁 Vérifie toutes les 5 secondes si un participant a scanné le QR code
-  useEffect(() => {
-    if (!id) return;
+  // useEffect(() => {
+  //   if (!id) return;
 
-    const interval = setInterval(async () => {
-      try {
-        const data = await getReunionById(id);
-        const reunionData = Array.isArray(data) ? data[0] : data;
+  //   const interval = setInterval(async () => {
+  //     try {
+  //       const data = await getReunionById(id);
+  //       const reunionData = Array.isArray(data) ? data[0] : data;
 
-        const hasNewCheckIn =
-          JSON.stringify(reunion?.participants) !== JSON.stringify(reunionData.participants);
+  //       const hasNewCheckIn =
+  //         JSON.stringify(reunion?.participants) !== JSON.stringify(reunionData.participants);
 
-        if (hasNewCheckIn) {
-          setReunion(reunionData);
-          setShowModal(true);
+  //       if (hasNewCheckIn) {
+  //         setReunion(reunionData);
+  //         setShowModal(true);
 
-          setTimeout(() => {
-            setShowModal(false);
-            window.location.reload();
-          }, 2000);
-        }
-      } catch (error) {
-        console.error("Erreur lors de la vérification du check-in :", error);
-      }
-    }, 5000);
+  //         setTimeout(() => {
+  //           setShowModal(false);
+  //           window.location.reload();
+  //         }, 2000);
+  //       }
+  //     } catch (error) {
+  //       console.error("Erreur lors de la vérification du check-in :", error);
+  //     }
+  //   }, 5000);
 
-    return () => clearInterval(interval);
-  }, [id, reunion]);
+  //   return () => clearInterval(interval);
+  // }, [id, reunion]);
+
+  const handleUploadFile = async () => {
+    if (!file) return alert("⚠️ Veuillez sélectionner un fichier à transcrire.");
+    if (!reunion?.id) return alert("❌ Réunion introuvable. Impossible de lier la transcription.");
+
+    setUploading(true);
+    setTranscriptionResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("File", file);
+      formData.append("ReunionId", reunion.id); // ✅ liaison par réunion
+
+      const response = await fetch(`${endPoint}/api/CompteRendu/process-file`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Erreur lors de la transcription.");
+
+      const data = await response.text();
+      setTranscriptionResult(
+        data?.trim() || "✅ Transcription terminée et associée à la réunion avec succès !"
+      );
+    } catch (error) {
+      console.error("Erreur transcription:", error);
+      alert("❌ Une erreur est survenue lors de la transcription.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (loading) return <p>Chargement...</p>;
   if (!reunion) return <p>Aucune donnée trouvée</p>;
@@ -234,7 +280,7 @@ const DetailsReunion = () => {
         <Breadcrumb
           paths={[
             { name: "Réunion", to: "/aeromemo/planification" },
-            { name: "Créer Réunion" },
+            { name: "Détails Réunion" },
           ]}
         />
           
@@ -245,7 +291,7 @@ const DetailsReunion = () => {
               onClick={() => setShowActions((prev) => !prev)}
               className="bg-green-700 text-white px-4 py-2 rounded-lg shadow hover:bg-green-800 focus:outline-none flex items-center gap-2"
             >
-              ⚙️ Actions
+              Actions
             </button>
 
             {showActions && (
@@ -254,19 +300,35 @@ const DetailsReunion = () => {
                   onClick={() => navigate(`/aeromemo/reunion/modification/${reunion?.id}`)}
                   className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-boxdark2"
                 >
-                  ✏️ Modifier
+                  Modifier
                 </button>
 
                 <button
                   onClick={() => {
                     if (reunion) {
-                      const outlookUrl = buildOutlookUrl(reunion);
+                      // ✅ Reconstituer les participants pour Outlook
+                      const participantsObligatoires = reunion.participants
+                        ?.filter(p => p.type?.toLowerCase() === "obligatoire")
+                        .map(p => p.userEmail) || [];
+
+                      const participantsFacultatifs = reunion.participants
+                        ?.filter(p => p.type?.toLowerCase() === "facultatif")
+                        .map(p => p.userEmail) || [];
+
+                      // ✅ Injecter ces listes dans une copie locale
+                      const reunionForOutlook = {
+                        ...reunion,
+                        participantsObligatoires,
+                        participantsFacultatifs
+                      };
+
+                      const outlookUrl = buildOutlookUrl(reunionForOutlook);
                       window.open(outlookUrl, "_blank");
                     }
                   }}
                   className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-boxdark2"
                 >
-                  📅 Ouvrir dans Outlook
+                  Ouvrir dans Outlook
                 </button>
 
                 <button
@@ -278,7 +340,28 @@ const DetailsReunion = () => {
                   }}
                   className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-boxdark2"
                 >
-                  💬 Rejoindre sur Teams
+                   Rejoindre sur Teams
+                </button>
+                {/* 🎙️ Transcription */}
+                <button
+                  onClick={() => setShowTranscriptionModal(true)}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-boxdark2"
+                >
+                  {transcriptionActive ? (
+                    <>
+                      {isRecording ? "⏹️ Arrêter transcription" : "⏹️ Stopper"}
+                    </>
+                  ) : (
+                    "Transcription"
+                  )}
+                </button>
+
+                {/* 📝 Générer CR */}
+                <button
+                  onClick={() => alert("📝 Génération du Compte Rendu...")}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-boxdark2"
+                >
+                   Générer Compte Rendu
                 </button>
               </div>
             )}
@@ -305,51 +388,106 @@ const DetailsReunion = () => {
             </div>
 
             {/* QR Code */}
-            <div className="bg-gray-50 rounded-lg p-6 w-full md:w-1/3 flex flex-col items-center justify-start shadow-sm">
-              <h3 className="text-center font-bold text-zinc-600 text-xl mb-6">QR Code</h3>
+          {/* QR Code amélioré */}
+<div className="bg-gray-50 rounded-lg p-6 w-full md:w-1/3 flex flex-col items-center justify-start shadow-sm relative">
+  <div className="flex items-center justify-center w-full mb-6 relative">
+    <h3 className="text-center font-bold text-zinc-600 text-xl">QR Code</h3>
 
-              {qrCodeGenerated && qrCodeUrl ? (
-                <div className="flex flex-col items-center">
-                  <img
-                    src={qrCodeUrl}
-                    alt="QR Code"
-                    className="w-56 h-56 mb-6 border border-gray-300 rounded-lg shadow"
-                  />
-                  <div className="flex flex-col gap-3 w-full">
-                    <button
-                      onClick={handleDownloadQRCode}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 w-full"
-                    >
-                      <Download size={18} /> Télécharger
-                    </button>
-                    <button
-                      onClick={handleGenerateQRCode}
-                      className="bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-amber-700 w-full"
-                    >
-                      <RefreshCw size={18} /> Régénérer
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={handleGenerateQRCode}
-                  disabled={qrCodeLoading}
-                  className="bg-green-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 mt-10"
-                >
-                  {qrCodeLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Génération...
-                    </>
-                  ) : (
-                    <>
-                      <QrCode size={18} /> Générer QR Code
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
+    {/* 🌀 Icône de régénération automatique */}
+    {reunionModified && (
+      <button
+        title="Les informations de la réunion ont changé — régénérez le QR Code"
+        onClick={handleGenerateQRCode}
+        className="absolute right-0 text-amber-600 hover:text-amber-700 transition-all"
+      >
+        <RefreshCw
+          size={20}
+          className="animate-spin-slow hover:rotate-180 transition-transform duration-500"
+        />
+      </button>
+    )}
+  </div>
+
+  {qrCodeGenerated && qrCodeUrl ? (
+    <div className="flex flex-col items-center">
+      <img
+        src={qrCodeUrl}
+        alt="QR Code"
+        className="w-56 h-56 mb-6 border border-gray-300 rounded-lg shadow"
+      />
+      <div className="flex flex-col gap-3 w-full">
+        <button
+          onClick={handleDownloadQRCode}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 w-full"
+        >
+          <Download size={18} /> Télécharger
+        </button>
+        <button
+          onClick={handleGenerateQRCode}
+          className="bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-amber-700 w-full"
+        >
+          <RefreshCw size={18} /> Régénérer
+        </button>
+      </div>
+    </div>
+  ) : (
+    <button
+      onClick={handleGenerateQRCode}
+      disabled={qrCodeLoading}
+      className="bg-green-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 mt-10"
+    >
+      {qrCodeLoading ? (
+        <>
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          Génération...
+        </>
+      ) : (
+        <>
+          <QrCode size={18} /> Générer QR Code
+        </>
+      )}
+    </button>
+  )}
+</div>
+
+            {/* QR Code fin */}
+                              {/* 🎥 Enregistrement vidéo */}
+<div className="bg-gray-50 rounded-lg p-6 w-full md:w-1/3 flex flex-col items-center justify-start shadow-sm">
+  <h3 className="text-center font-bold text-zinc-600 text-xl mb-6 flex items-center gap-2">
+     Enregistrement vidéo
+  </h3>
+
+  {/* Champ caché pour la valeur de la vidéo */}
+  <input type="hidden" name="videoUrl" value={videoUrl} />
+
+  <div className="relative w-full rounded-xl overflow-hidden shadow-md group transition-all duration-300 hover:shadow-lg">
+    <video
+      controls
+      preload="metadata"
+      poster="https://cdn.pixabay.com/photo/2016/11/29/03/53/laptop-1869306_1280.jpg"
+      className="w-full h-48 object-cover rounded-xl group-hover:scale-[1.02] transition-transform duration-300"
+    >
+      <source src={videoUrl} type="video/mp4" />
+      Votre navigateur ne supporte pas la lecture vidéo.
+    </video>
+
+    {/* Overlay subtile */}
+    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent rounded-xl pointer-events-none"></div>
+  </div>
+
+  <p className="mt-3 text-sm text-gray-500 italic text-center">
+    Vidéo d’exemple de la réunion enregistrée
+  </p>
+
+  <button
+    onClick={() => alert('Lecture de la vidéo complète')}
+    className="mt-4 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium shadow hover:bg-green-700 transition-colors"
+  >
+    Générer CR
+  </button>
+</div>
           </div>
+
 
           {/* Liste des participants */}
           <div className="mt-6">
@@ -393,7 +531,7 @@ const DetailsReunion = () => {
             </table>
 
             {/* Boutons transcription & CR */}
-            <div className="flex justify-between mt-6">
+            {/* <div className="flex justify-between mt-6">
               <button
                 onClick={() => setShowQRModal(true)}
                 disabled={!qrCodeGenerated}
@@ -431,21 +569,50 @@ const DetailsReunion = () => {
               <button className="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700">
                 Générer CR
               </button>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
 
       {/* ✅ Modal confirmation scan */}
-      {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm z-50">
-          <div className="bg-white rounded-2xl p-6 shadow-lg text-center animate-fade-in">
-            <h3 className="text-green-600 font-semibold text-lg mb-2">
-              ✅ Scan réussi !
-            </h3>
-            <p className="text-gray-600">
-              La liste des participants va se mettre à jour...
-            </p>
+      {showTranscriptionModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-xl shadow-lg w-96 p-6 relative">
+            <h2 className="text-lg font-bold mb-4 text-gray-800">
+              Transcrire un fichier — <span className="text-green-700">{reunion?.titre}</span>
+            </h2>
+
+            <input
+              type="file"
+              accept=".mp3,.wav,.mp4,.m4a,.mov,.avi,.txt"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              className="w-full border border-gray-300 rounded-md p-2 mb-4"
+            />
+
+            <button
+              onClick={handleUploadFile}
+              disabled={uploading || !file}
+              className="w-full bg-green-700 text-white py-2 rounded-md hover:bg-green-800 disabled:opacity-50"
+            >
+              {uploading ? "⏳ Transcription en cours..." : "🎙️ Transcrire le fichier"}
+            </button>
+
+            {transcriptionResult && (
+              <div className="mt-4 bg-gray-100 border p-3 rounded-md text-sm text-gray-700 whitespace-pre-wrap">
+                {transcriptionResult}
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                setShowTranscriptionModal(false);
+                setFile(null);
+                setTranscriptionResult(null);
+              }}
+              className="absolute top-3 right-4 text-gray-500 hover:text-gray-700"
+            >
+              ✖
+            </button>
           </div>
         </div>
       )}
