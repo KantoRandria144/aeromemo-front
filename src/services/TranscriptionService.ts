@@ -1,5 +1,6 @@
 // src/services/TranscriptionService.ts
 // Service d’intégration avec l’API C# locale : http://localhost:5000/api/transcription/upload
+import axios from "axios";
 
 const API_TRANSCRIPTION = "http://localhost:5000/api/transcription/upload";
 
@@ -16,23 +17,30 @@ export type TranscriptionApiResponse = {
   participants?: string[];
 };
 
-export async function uploadTranscriptionFile(file: File, language: string = "fr"): Promise<TranscriptionApiResponse> {
+export async function uploadTranscriptionFile(
+  file: File,
+  language: string = "fr",
+  reunionId?: string,
+  onProgress?: (progress: number) => void
+): Promise<TranscriptionApiResponse> {
   const form = new FormData();
-  // ⚠️ Ton API .NET accepte des champs nommés "File" et "Language" (cf. contrôleur fourni)
   form.append("File", file);
   form.append("Language", language);
+  if (reunionId) form.append("ReunionId", reunionId);
 
-  const res = await fetch(API_TRANSCRIPTION, {
-    method: "POST",
-    body: form,
+  const res = await axios.post(API_TRANSCRIPTION, form, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+    onUploadProgress: (event) => {
+      if (event.total) {
+        const percent = Math.round((event.loaded * 100) / event.total);
+        if (onProgress) onProgress(percent);
+      }
+    },
   });
 
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`Erreur API (${res.status} ${res.statusText}) ${txt ? `→ ${txt}` : ""}`);
-  }
-
-  return (await res.json()) as TranscriptionApiResponse;
+  return res.data as TranscriptionApiResponse;
 }
 // src/services/TranscriptionService.ts
 

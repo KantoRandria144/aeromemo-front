@@ -90,6 +90,7 @@ const DetailsReunion: React.FC = () => {
   // 🔥 Compte rendu généré
 const [transcriptionData, setTranscriptionData] = useState<any | null>(null);
 const [loadingTranscription, setLoadingTranscription] = useState(false);
+const [uploadProgress, setUploadProgress] = useState<number>(0);
 
 
   // ──────────────────────────────────────────────────────────────────────────────
@@ -259,47 +260,46 @@ const [loadingTranscription, setLoadingTranscription] = useState(false);
   // ──────────────────────────────────────────────────────────────────────────────
   // Transcription fichier → API C# locale
   // ──────────────────────────────────────────────────────────────────────────────
-  const handleUploadFile = async () => {
-    if (!file) return alert("⚠️ Veuillez sélectionner un fichier à transcrire.");
-    if (!reunion?.id) return alert("❌ Réunion introuvable.");
+ const handleUploadFile = async () => {
+  if (!file) return alert("⚠️ Veuillez sélectionner un fichier à transcrire.");
+  if (!reunion?.id) return alert("❌ Réunion introuvable.");
 
-    setUploading(true);
-    setTranscriptionResult(null);
-    setApiResult(null);
+  setUploading(true);
+  setTranscriptionResult(null);
+  setUploadProgress(0);
 
-    try {
-      const data = await uploadTranscriptionFile(file, "fr");
+  try {
+    const data = await uploadTranscriptionFile(file, "fr", reunion.id, (progress) => {
+      setUploadProgress(progress);
+    });
 
-      // Mise en forme lisible (sans dépendance Markdown)
-      const pretty = [
-        "📝 Résumé automatique :",
-        data.summary?.trim() || "—",
-        "",
-        "🎯 Points clés :",
-        asBullets(data.pointsCles),
-        "",
-        "⚙️ Actions proposées :",
-        asBullets(data.actions),
-        "",
-        "✅ Décisions :",
-        asBullets(data.decisions),
-        "",
-        "👥 Participants détectés :",
-        asBullets(data.participants),
-        "",
-        "🔤 Extrait du texte :",
-        clip(data.text, 1200) || "—",
-      ].join("\n");
+    // 🔽 ton affichage résumé existant
+    const { summary, text, pointsCles, actions, decisions, participants } = data;
+    const formattedResult = `
+📝 **Résumé :**
+${summary || "Aucun résumé"}
 
-      setApiResult(data);
-      setTranscriptionResult(pretty);
-    } catch (e) {
-      console.error(e);
-      alert("❌ Une erreur est survenue lors de la transcription.");
-    } finally {
-      setUploading(false);
-    }
-  };
+🎯 **Points clés :**
+${pointsCles?.length ? pointsCles.join(", ") : "Aucun"}
+
+⚙️ **Actions :**
+${actions?.length ? actions.join("\n") : "Aucune"}
+
+👥 **Participants :**
+${participants?.length ? participants.join(", ") : "Aucun"}
+
+🗣️ **Texte :**
+${text?.slice(0, 300)}${text?.length > 300 ? "..." : ""}
+`;
+    setTranscriptionResult(formattedResult);
+  } catch (err) {
+    console.error(err);
+    alert("Erreur durant la transcription !");
+  } finally {
+    setUploading(false);
+  }
+};
+
 
   // ──────────────────────────────────────────────────────────────────────────────
   // Rendu
@@ -477,25 +477,19 @@ const [loadingTranscription, setLoadingTranscription] = useState(false);
                 Vidéo démonstration
             ─────────────────────────────────────────────────────────────────── */}
             <div className="bg-gray-50 rounded-lg p-6 w-full md:w-1/3 flex flex-col items-center justify-start shadow-sm">
-              <h3 className="text-center font-bold text-zinc-600 text-xl mb-6 flex items-center gap-2">
-                Enregistrement vidéo
-              </h3>
-
-              <input type="hidden" name="videoUrl" value={videoUrl} />
-              <div className="relative w-full rounded-xl overflow-hidden shadow-md group transition-all duration-300 hover:shadow-lg">
-                <video
-                  controls
-                  preload="metadata"
-                  poster="https://cdn.pixabay.com/photo/2016/11/29/03/53/laptop-1869306_1280.jpg"
-                  className="w-full h-48 object-cover rounded-xl group-hover:scale-[1.02] transition-transform duration-300"
-                >
-                  <source src={videoUrl} type="video/mp4" />
-                  Votre navigateur ne supporte pas la lecture vidéo.
-                </video>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent rounded-xl pointer-events-none"></div>
-              </div>
-
-              <p className="mt-3 text-sm text-gray-500 italic text-center">Vidéo d’exemple de la réunion enregistrée</p>
+             {transcriptionData?.fileName && (
+                <div className="mt-6">
+                  <h4 className="font-semibold mb-2">🎧 Fichier audio associé</h4>
+                  <audio
+                    controls
+                    src={`http://localhost:5000/uploads/${transcriptionData.fileName}`}
+                    className="w-full"
+                  >
+                    Votre navigateur ne supporte pas la lecture audio.
+                  </audio>
+                </div>
+              )}
+              <p className="mt-3 text-sm text-gray-500 italic text-center">Audio enregistrée apres la réunion</p>
 
               <button
                 onClick={() => alert("Lecture de la vidéo complète")}
@@ -660,6 +654,19 @@ const [loadingTranscription, setLoadingTranscription] = useState(false);
               >
                 {uploading ? "⏳ Envoi…" : "🎙️ Transcrire"}
               </button>
+              {uploading && (
+              <div className="w-full bg-gray-200 rounded-full h-2.5 mt-3 overflow-hidden">
+                <div
+                  className="bg-green-600 h-2.5 transition-all duration-200 ease-in-out"
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+              </div>
+            )}
+
+            {uploading && (
+              <p className="text-xs text-gray-500 mt-2 text-center">{uploadProgress}% envoyé...</p>
+            )}
+
             </div>
 
             {transcriptionResult && (
@@ -674,6 +681,7 @@ const [loadingTranscription, setLoadingTranscription] = useState(false);
                 setFile(null);
                 setTranscriptionResult(null);
                 setApiResult(null);
+                window.location.reload();
               }}
               className="absolute top-3 right-4 text-gray-500 hover:text-gray-700"
             >
