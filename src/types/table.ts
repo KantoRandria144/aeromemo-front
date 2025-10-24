@@ -12,7 +12,7 @@ export interface TableAccessProps {
       assignAccess: number;
       watchAllActivity: number;
     }[];
-    habilitationReunion: {
+    habilitationReunions: {
       assign: number;
       create: number;
       update: number;

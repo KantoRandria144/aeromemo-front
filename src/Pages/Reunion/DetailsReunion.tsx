@@ -10,6 +10,110 @@ import QRCode from "qrcode";
 import Breadcrumb from "../../components/BreadCrumbs/BreadCrumb";
 import { uploadTranscriptionFile, TranscriptionApiResponse } from "../../services/TranscriptionService";
 import { getTranscriptionByReunionId } from "../../services/TranscriptionService";
+import { getAllUsers } from "../../services/User/UserServices";
+import { Notyf } from "notyf";
+import "notyf/notyf.min.css";
+import { getThreeInitials } from "../../services/Function/UserFonctionService";
+import axios from "axios";
+
+
+type SimpleUser = { id: string; name: string; email: string };
+
+const ParticipantsAutocomplete: React.FC<{
+  label: string;
+  selected: SimpleUser[];
+  onChange: (next: SimpleUser[]) => void;
+  excludeIds?: string[];
+}> = ({ label, selected, onChange, excludeIds = [] }) => {
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<SimpleUser[]>([]);
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const timeout = setTimeout(async () => {
+      if (!query.trim()) return setSuggestions([]);
+      try {
+        const data = await getAllUsers(query);
+        let list: SimpleUser[] = Array.isArray(data) ? data : [];
+        const v = query.toLowerCase();
+        list = list.filter(
+          (u) =>
+            ((u.name || "").toLowerCase().includes(v) ||
+              (u.email || "").toLowerCase().includes(v)) &&
+            !selected.some((s) => s.id === u.id) &&
+            !(excludeIds || []).includes(u.id)
+        );
+        setSuggestions(list);
+      } catch {
+        setSuggestions([]);
+      }
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [query, excludeIds, selected]);
+
+  const addOne = (u: SimpleUser) => {
+    if (!selected.some((p) => p.id === u.id)) onChange([...selected, u]);
+    setQuery("");
+    setOpen(false);
+  };
+  const removeOne = (id: string) => onChange(selected.filter((p) => p.id !== id));
+
+  return (
+    <div ref={boxRef}>
+      <label className="block mb-1 font-semibold text-sm text-gray-700">
+        {label}
+      </label>
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        placeholder="Rechercher un utilisateur…"
+        className="w-full rounded border p-2 mb-2"
+      />
+      {open && suggestions.length > 0 && (
+        <div className="bg-white border rounded shadow max-h-40 overflow-auto absolute z-10 w-full">
+          {suggestions.map((u) => (
+            <button
+              key={u.id}
+              onClick={() => addOne(u)}
+              type="button"
+              className="block w-full text-left px-3 py-2 hover:bg-gray-100"
+            >
+              <span className="font-semibold">{u.name}</span>
+              <br />
+              <span className="text-xs text-gray-500">{u.email}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2 mt-2">
+        {selected.map((u) => (
+          <div
+            key={u.id}
+            className="flex items-center bg-gray-100 rounded-full px-3 py-1"
+          >
+            <div className="w-6 h-6 bg-emerald-700 text-white rounded-full flex items-center justify-center text-xs mr-2">
+              {getThreeInitials(u.name)}
+            </div>
+            <span className="text-sm mr-1">{u.name}</span>
+            <button
+              onClick={() => removeOne(u.id)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 
 
 // ────────────────────────────────────────────────────────────────────────────────
@@ -91,6 +195,12 @@ const DetailsReunion: React.FC = () => {
 const [transcriptionData, setTranscriptionData] = useState<any | null>(null);
 const [loadingTranscription, setLoadingTranscription] = useState(false);
 const [uploadProgress, setUploadProgress] = useState<number>(0);
+
+
+const [showAddParticipantsModal, setShowAddParticipantsModal] = useState(false);
+const [requiredParticipants, setRequiredParticipants] = useState<SimpleUser[]>([]);
+const [optionalParticipants, setOptionalParticipants] = useState<SimpleUser[]>([]);
+const notyf = useMemo(() => new Notyf({ position: { x: "center", y: "top" } }), []);
 
 
   // ──────────────────────────────────────────────────────────────────────────────
@@ -504,7 +614,16 @@ ${text?.slice(0, 300)}${text?.length > 300 ? "..." : ""}
               Liste des participants
           ─────────────────────────────────────────────────────────────────────── */}
           <div className="mt-6">
-            <h3 className="font-semibold mb-3">Liste des participants</h3>
+  <div className="flex justify-between items-center mb-3">
+    <h3 className="font-semibold">Liste des participants</h3>
+    <button
+      onClick={() => setShowAddParticipantsModal(true)}
+      className="bg-green-700 text-white px-4 py-2 rounded-md hover:bg-green-800 text-sm"
+    >
+      ➕ Ajouter participants
+    </button>
+  </div>
+
             <table className="w-full border-collapse border border-gray-200 rounded-lg overflow-hidden">
               <thead>
                 <tr className="bg-green-600 text-white text-left">
@@ -722,6 +841,76 @@ ${text?.slice(0, 300)}${text?.length > 300 ? "..." : ""}
           </div>
         </div>
       )}
+      {showAddParticipantsModal && (
+  <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+    <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl relative">
+      <h2 className="text-lg font-bold mb-4 text-gray-800">
+        Ajouter des participants — <span className="text-green-700">{reunion?.titre}</span>
+      </h2>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <ParticipantsAutocomplete
+          label="Participants obligatoires"
+          selected={requiredParticipants}
+          onChange={(next) => {
+            const nextOpt = optionalParticipants.filter((u) => !next.some((r) => r.id === u.id));
+            setOptionalParticipants(nextOpt);
+            setRequiredParticipants(next);
+          }}
+          excludeIds={optionalParticipants.map((u) => u.id)}
+        />
+        <ParticipantsAutocomplete
+          label="Participants facultatifs"
+          selected={optionalParticipants}
+          onChange={(next) => {
+            const nextReq = requiredParticipants.filter((u) => !next.some((o) => o.id === u.id));
+            setRequiredParticipants(nextReq);
+            setOptionalParticipants(next);
+          }}
+          excludeIds={requiredParticipants.map((u) => u.id)}
+        />
+      </div>
+
+      <div className="flex justify-end gap-3 mt-6">
+        <button
+          onClick={() => setShowAddParticipantsModal(false)}
+          className="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-100"
+        >
+          Annuler
+        </button>
+        <button
+          onClick={async () => {
+            try {
+              const payload = {
+                reunionId: reunion?.id,
+                participantsObligatoires: requiredParticipants.map((p) => p.email),
+                participantsFacultatifs: optionalParticipants.map((p) => p.email),
+              };
+              await axios.post(`${endPoint}/api/Reunion/add-participants`, payload);
+              notyf.success("Participants ajoutés avec succès !");
+              setShowAddParticipantsModal(false);
+              window.location.reload();
+            } catch (err) {
+              console.error(err);
+              notyf.error("Erreur lors de l’ajout des participants");
+            }
+          }}
+          className="px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-800"
+        >
+          Ajouter
+        </button>
+      </div>
+
+      <button
+        onClick={() => setShowAddParticipantsModal(false)}
+        className="absolute top-3 right-4 text-gray-500 hover:text-gray-700"
+      >
+        ✖
+      </button>
+    </div>
+  </div>
+)}
+
     </DefaultLayout>
   );
 };

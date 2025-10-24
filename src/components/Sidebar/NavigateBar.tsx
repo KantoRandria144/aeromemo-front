@@ -29,21 +29,19 @@ const NavigateBar = ({
   const sidebar = useRef<any>(null);
 
   useEffect(() => {
-    let admin = localStorage.getItem("_au_ad");
+  const adminToken = localStorage.getItem("_au_ad");
+  const userToken = localStorage.getItem("_au_pr");
 
-    if (admin) {
-      setIsAdminHabilitate(true);
-    }
-    const token = localStorage.getItem("_au_pr");
-    if (token) {
-      try {
-        const decoded = decodeToken("pr");
-        setDecodedToken(decoded);
-      } catch (error) {
-        console.error(`Invalid token ${error}`);
-      }
-    }
-  }, []);
+  if (adminToken) {
+    setIsAdminHabilitate(true);
+  }
+
+  const decoded = decodeToken(adminToken ? "ad" : "pr");
+  if (decoded) {
+    setDecodedToken(decoded);
+  }
+}, []);
+
 
   //close on click outside
   useEffect(() => {

@@ -59,7 +59,7 @@ const DropdownUser = ({ userConnected }: { userConnected: any }) => {
       >
         <span className="hidden text-right lg:block">
           <span className="block text-sm font-medium text-black dark:text-white">
-            {userConnected?.name}
+           {userConnected?.name}
           </span>
           <span className="block text-xs">
             {userConnected?.email}

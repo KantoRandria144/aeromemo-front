@@ -449,7 +449,7 @@ const TableAccess = ({
                   </td>
 
                   <td className="border-b max-w-40 border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
-                    {renderHabilitationDetails(access?.habilitationReunion, 'reunion')}
+                    {renderHabilitationDetails(access?.habilitationReunions, 'reunion')}
                   </td>
                 </tr>
               ))}

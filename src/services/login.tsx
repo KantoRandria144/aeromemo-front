@@ -7,9 +7,7 @@ import {
 
 const endPoint = import.meta.env.VITE_API_ENDPOINT;
 
-/* ======= POST ======= */
-
-// login
+/* ======= SERVICE D’AUTHENTIFICATION ======= */
 export const useAuthService = () => {
   const { login } = useAuth();
 
@@ -19,96 +17,88 @@ export const useAuthService = () => {
     type: string;
   }) => {
     try {
-      const response = await axios.post(
-        `${endPoint}/api/Login`,
-        userCredentials,
-        { withCredentials: false }
-      );
+      const response = await axios.post(`${endPoint}/api/Login`, userCredentials, {
+        withCredentials: false,
+      });
 
       console.log("Réponse du backend login :", response.data);
-      
 
-      if (response.data && response.data.type === "success") {
+      if (response.data?.type === "success") {
         const user = response.data.user;
-        const token = response.data.token;
+        const token = response.data.appToken || response.data.token; // ✅ correction
+        const message = response.data.message;
 
-        if (user?.id) {
-          localStorage.setItem("userId",user.id);
+        // Vérifications
+        if (!user?.id) {
+          console.warn("⚠️ Aucun ID utilisateur trouvé dans la réponse.");
         } else {
-          console.warn("L'ID de l'utilisateur n'a pas été trouvé dans la réponse de l'API.");
+          localStorage.setItem("userId", user.id);
         }
 
-        if(token) {
+        if (!token) {
+          console.warn("⚠️ Aucun token (appToken/token) trouvé dans la réponse.");
+        } else {
           localStorage.setItem("_au_pr", token);
         }
-        
+
+        // Détection des habilitations
         let adminPrivilege = false;
         let reunionPrivilege = false;
 
-        const habilitations = response.data.user?.habilitations || [];
-        console.log("Réponse du id login :", response.data.user.id);
+        const habilitations = user?.habilitations || [];
         if (Array.isArray(habilitations)) {
           habilitations.forEach(
             (hab: {
               habilitationAdmins?: HabilitationAdminInterface[];
               habilitationReunions?: HabilitationReunionInterface[];
             }) => {
-              // Vérif si c’est bien un tableau avant de boucler
               if (Array.isArray(hab.habilitationAdmins)) {
-                hab.habilitationAdmins.forEach(
-                  (admin: HabilitationAdminInterface) => {
-                    if (
-                      admin?.createHabilitation === 1 ||
-                      admin?.deleteHabilitation === 1 ||
-                      admin?.modifyHierarchy === 1 ||
-                      admin?.restoreHierarchy === 1 ||
-                      admin?.updateHabilitation === 1
-                    ) {
-                      adminPrivilege = true;
-                    }
+                hab.habilitationAdmins.forEach((admin: HabilitationAdminInterface) => {
+                  if (
+                    admin.createHabilitation === 1 ||
+                    admin.deleteHabilitation === 1 ||
+                    admin.modifyHierarchy === 1 ||
+                    admin.restoreHierarchy === 1 ||
+                    admin.updateHabilitation === 1
+                  ) {
+                    adminPrivilege = true;
                   }
-                );
+                });
               }
 
               if (Array.isArray(hab.habilitationReunions)) {
-                hab.habilitationReunions.forEach(
-                  (reunion: HabilitationReunionInterface) => {
-                    if (
-                      reunion.create === 1 ||
-                      reunion.update === 1 ||
-                      reunion.delete === 1 ||
-                      reunion.assign === 1
-                    ) {
-                      reunionPrivilege = true;
-                    }
+                hab.habilitationReunions.forEach((reunion: HabilitationReunionInterface) => {
+                  if (
+                    reunion.create === 1 ||
+                    reunion.update === 1 ||
+                    reunion.delete === 1 ||
+                    reunion.assign === 1
+                  ) {
+                    reunionPrivilege = true;
                   }
-                );
+                });
               }
             }
           );
         }
 
-        // Sauvegarde du token selon les privilèges
-        if (adminPrivilege) {
-          localStorage.setItem("_au_ad", response.data.token);
-        }
-        if (reunionPrivilege) {
-          localStorage.setItem("_au_pr", response.data.token);
-        }
+        // Sauvegarde des tokens selon privilèges
+        if (adminPrivilege && token) localStorage.setItem("_au_ad", token);
+        if (reunionPrivilege && token) localStorage.setItem("_au_pr", token);
 
-        if (response.data.user?.id) {
-          localStorage.setItem("userId", response.data.user.id);
-        }
-        // Toujours sauvegarder _au_pr (pour savoir qui est connecté)
-        localStorage.setItem("_au_pr", response.data.token);
+        // Met à jour le contexte Auth global
+        login(user);
 
-        // Met à jour le contexte Auth
-        login(response.data.user);
+        return { type: "success", user, token, message };
+      } else {
+        console.warn("Réponse inattendue :", response.data);
+        return {
+          type: "error",
+          message: "Réponse inattendue du serveur.",
+        };
       }
-
-      return response.data;
     } catch (error) {
-      console.error(`Error while login ${error}`);
+      console.error("❌ Erreur lors du login :", error);
       return {
         message:
           "Vous n'avez pas accès à cette plateforme, veuillez vérifier votre connexion ou contacter l'administrateur",
@@ -120,12 +110,13 @@ export const useAuthService = () => {
   return { loginUser };
 };
 
-// logout
+// ======= LOGOUT =======
 export const logout = async () => {
   try {
     const response = await axios.post(`${endPoint}/api/Login/logout`);
     localStorage.removeItem("_au_ad");
     localStorage.removeItem("_au_pr");
+    localStorage.removeItem("userId");
     return response;
   } catch (error) {
     console.error(`Error while logout service ${error}`);
